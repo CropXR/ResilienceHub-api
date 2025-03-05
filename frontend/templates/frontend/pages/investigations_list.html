@@ -1,0 +1,132 @@
+{% extends "frontend/base.html" %}
+{% load permission_tags %}
+
+{% block title %}Investigations{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Investigations</h1>
+            <div>
+                <a href="{% url 'investigations_list' %}" class="btn btn-primary me-2">
+                    <i class="fas fa-list"></i> All Investigations
+                </a>
+                <a href="{% url 'create_investigation' %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> New Investigation
+                </a>
+            </div>
+        </div>
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+    {% else %}
+        {% if investigations %}
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Accession Code</th>
+                                    <th>Title</th>
+                                    <th>Security Level</th>
+                                    <th>Studies</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for investigation in investigations %}
+                                    <tr>
+                                        <td>{{ investigation.accession_code }}</td>
+                                        <td>
+                                            {% url 'investigation_detail' investigation.accession_code as detail_url %}
+                                            {% if detail_url %}
+                                                <a href="{{ detail_url }}">
+                                                    {{ investigation.title }}
+                                                </a>
+                                            {% else %}
+                                                {{ investigation.title }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{{ investigation.security_level|lower }}">
+                                                {{ investigation.security_level }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if investigation.studies %}
+                                                {% if investigation.studies|length %}
+                                                    {{ investigation.studies|length }}
+                                                {% elif investigation.studies_count %}
+                                                    {{ investigation.studies_count }}
+                                                {% else %}
+                                                    0
+                                                {% endif %}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if investigation.created_at %}
+                                                {{ investigation.created_at|date:"M d, Y" }}
+                                            {% else %}
+                                                {% if investigation.submission_date %}
+                                                    {{ investigation.submission_date }}
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                {% url 'investigation_detail' investigation.accession_code as detail_url %}
+                                                {% if detail_url %}
+                                                    <a href="{{ detail_url }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                {% endif %}
+                                                
+                                                {% url 'investigation_edit' investigation.accession_code as edit_url %}
+                                                {% if edit_url %}
+                                                    <a href="{{ edit_url }}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                No investigations found.
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- Custom CSS for badges -->
+<style>
+    .badge-internal {
+        background-color: #6c757d;
+        color: white;
+    }
+    .badge-restricted {
+        background-color: #fd7e14;
+        color: white;
+    }
+    .badge-confidential {
+        background-color: #dc3545;
+        color: white;
+    }
+    .badge-public {
+        background-color: #28a745;
+        color: white;
+    }
+</style>
+{% endblock %}

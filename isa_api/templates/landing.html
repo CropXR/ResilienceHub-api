@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to ISA API{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <h1 class="display-4 mb-4">Welcome to ISA API</h1>
+            <p class="lead mb-5">A platform for managing investigations and studies</p>
+            
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Investigations</h5>
+                            <p class="card-text">Access and manage your research investigations</p>
+                            <a href="/api/" class="btn btn-primary">Go to Investigations</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">API Documentation</h5>
+                            <p class="card-text">View the API documentation and schema</p>
+                            <a href="/docs/" class="btn btn-secondary">View API Docs</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if user.is_authenticated %}
+            <div class="mt-4">
+                <p>Logged in as <strong>{{ user.username }}</strong></p>
+            </div>
+            {% else %}
+            <div class="mt-4">
+                <a href="/accounts/login/" class="btn btn-outline-primary">Login</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
