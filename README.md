@@ -1,7 +1,18 @@
 [![Django Tests](https://github.com/CropXR/ResilienceHub-api/actions/workflows/django-tests.yml/badge.svg)](https://github.com/CropXR/ResilienceHub-api/actions/workflows/django-tests.yml)
 
-## Entity Relationships
-![ERD](erd.png)
+## Installation
+
+Install dependencies and the package.
+
+    pip install requirements.txt
+  
+Prepare the database.
+
+    make migration
+
+Start a development server.
+
+    make devel
 
 ## **Role-Based Access Control (RBAC) Matrix**
 
@@ -21,8 +32,6 @@
 - **R/W** = Read and Write  
 - **-** = No access  
 
----
-
 ## **Administrative Permissions Table**
 
 | Action                   | Contributor | Owner |
@@ -31,4 +40,8 @@
 | Add Owners               | ❌         | ✅    |
 | Modify Access Control    | ❌         | ✅    |
 | Remove Users             | ❌         | ✅    |
+
+
+## Entity Relationships
+![ERD](erd.png)
 
