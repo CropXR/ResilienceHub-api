@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework_datatables',
     'guardian',
     'isa_api',
+    #'frontend',
 ]
 
 REST_FRAMEWORK = {
@@ -175,3 +177,50 @@ INTERNAL_IPS = [
 API_BASE_URL = 'http://localhost:8000'  # Or whatever your API base URL should be
     
 GRAPPELLI_ADMIN_TITLE = 'ResilienceHub API'
+
+# Production settings override - applied when environment variable is set
+if os.environ.get('DJANGO_PRODUCTION') == 'True':
+    DEBUG = False
+    SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', SECRET_KEY)
+    ALLOWED_HOSTS = [os.environ.get('DJANGO_ALLOWED_HOSTS', '*')]
+    
+    # Static and media files
+    STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    
+    # Update API base URL for production
+    API_BASE_URL = os.environ.get('API_BASE_URL', f'https://{ALLOWED_HOSTS[0]}')
+    
+    # Security settings
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    
+    # Logging
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'file': {
+                'level': 'ERROR',
+                'class': 'logging.FileHandler',
+                'filename': '/var/log/resiliencehub/django.log',
+            },
+        },
+        'loggers': {
+            'django': {
+                'handlers': ['file'],
+                'level': 'ERROR',
+                'propagate': True,
+            },
+        },
+    }
+    
+    # Disable Debug Toolbar in production
+    if 'debug_toolbar' in INSTALLED_APPS:
+        INSTALLED_APPS.remove('debug_toolbar')
+    if 'debug_toolbar.middleware.DebugToolbarMiddleware' in MIDDLEWARE:
+        MIDDLEWARE.remove('debug_toolbar.middleware.DebugToolbarMiddleware')
