@@ -80,7 +80,7 @@ SPECTACULAR_SETTINGS = {
     #'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
     #'REDOC_DIST': 'SIDECAR',
     'SCHEMA_PATH_PREFIX': r'/api/',  # Match URL pattern for versioned APIs
-    'VERSION': None,  # Remove version completely
+    'VERSION': None,  # Remove version completely from schema URLs
 }
 
 MIDDLEWARE = [

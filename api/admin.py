@@ -105,7 +105,7 @@ class StudyInline(admin.TabularInline):
 
     def accession_code_link(self, obj):
         """Create a clickable link to the Study detail page."""
-        url = reverse('admin:isa_api_study_change', args=[obj.pk])
+        url = reverse('admin:api_study_change', args=[obj.pk])
         return format_html('<a href="{}">{}</a>', url, obj.accession_code)
 
     accession_code_link.short_description = 'Accession Code'
@@ -156,7 +156,7 @@ class AssayInline(admin.TabularInline):
 
     def accession_code_link(self, obj):
         """Create a clickable link to the Assay detail page."""
-        url = reverse('admin:isa_api_assay_change', args=[obj.pk])
+        url = reverse('admin:api_assay_change', args=[obj.pk])
         return format_html('<a href="{}">{}</a>', url, obj.accession_code)
 
     accession_code_link.short_description = 'Accession Code'
@@ -178,7 +178,7 @@ class StudyAdmin(CustomGuardedModelAdmin):
               'end_date', 'submission_date')
     
     def investigation_link(self, obj):
-        url = reverse('admin:isa_api_investigation_change', args=[obj.investigation.id])
+        url = reverse('admin:api_investigation_change', args=[obj.investigation.id])
         return format_html('<a href="{}">{}</a>', url, obj.investigation.accession_code)
     
     investigation_link.short_description = "Investigation"
@@ -215,7 +215,7 @@ class AssayAdmin(CustomGuardedModelAdmin):
 
     def study_link(self, obj):
         """Create a clickable link to the Study detail page."""
-        url = reverse('admin:isa_api_study_change', args=[obj.study.id])
+        url = reverse('admin:api_study_change', args=[obj.study.id])
         return format_html('<a href="{}">{}</a>', url, obj.study.accession_code)
     
     study_link.short_description = "Study"
@@ -223,7 +223,7 @@ class AssayAdmin(CustomGuardedModelAdmin):
     def investigation_link(self, obj):
         """Create a clickable link to the Investigation detail page."""
         if obj.study and obj.study.investigation:
-            url = reverse('admin:isa_api_investigation_change', args=[obj.study.investigation.id])
+            url = reverse('admin:api_investigation_change', args=[obj.study.investigation.id])
             return format_html('<a href="{}">{}</a>', url, obj.study.investigation.accession_code)
         return "-"
 
