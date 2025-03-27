@@ -169,9 +169,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# In development, look for static files in these directories
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-    os.path.join(BASE_DIR, "config/static"),
+    BASE_DIR / "static",
+    BASE_DIR / "config/static",
 ]
 
 # Default primary key field type
@@ -194,8 +195,8 @@ if os.environ.get('DJANGO_PRODUCTION') == 'True':
     ALLOWED_HOSTS = [os.environ.get('DJANGO_ALLOWED_HOSTS', '*')]
     
     # Static and media files
-    STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    STATIC_ROOT = STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT')
+    MEDIA_ROOT = STATIC_ROOT = os.environ.get('DJANGO_MEDIA_ROOT')
     
     # Update API base URL for production
     API_BASE_URL = os.environ.get('API_BASE_URL', f'https://{ALLOWED_HOSTS[0]}')
