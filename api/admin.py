@@ -260,3 +260,8 @@ class InvestigationInstitutionAdmin(admin.ModelAdmin):
     list_display = ['id', 'project', 'institution', 'contribution_amount', 'join_date']
     search_fields = ['project__title', 'institution__name']
     autocomplete_fields = ['project', 'institution']
+    
+    
+admin.site.site_header = "ResilienceHub API"
+admin.site.site_title = "ResilienceHub Admin"
+admin.site.index_title = "Welcome to ResilienceHub Admin"

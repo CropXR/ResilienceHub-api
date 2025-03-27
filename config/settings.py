@@ -99,7 +99,10 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Make sure this includes your template directory
+        'DIRS': [
+            BASE_DIR / 'templates',
+            BASE_DIR / 'config/templates',
+        ], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -166,6 +169,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+    os.path.join(BASE_DIR, "config/static"),
+]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -177,7 +185,7 @@ INTERNAL_IPS = [
 
 API_BASE_URL = 'http://localhost:8000'  # Or whatever your API base URL should be
     
-GRAPPELLI_ADMIN_TITLE = 'ResilienceHub API'
+GRAPPELLI_ADMIN_TITLE = ''
 
 # Production settings override - applied when environment variable is set
 if os.environ.get('DJANGO_PRODUCTION') == 'True':
