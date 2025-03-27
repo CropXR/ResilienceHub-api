@@ -205,7 +205,7 @@ if os.environ.get('DJANGO_PRODUCTION') == 'True':
     SECURE_CONTENT_TYPE_NOSNIFF = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = False
     
     # Logging
     LOGGING = {
