@@ -207,7 +207,7 @@ if os.environ.get('DJANGO_PRODUCTION') == 'True':
             'file': {
                 'level': 'ERROR',
                 'class': 'logging.FileHandler',
-                'filename': '/var/log/resilience-hub/django.log',
+                'filename': '/var/log/resiliencehub-api/django.log',
             },
         },
         'loggers': {
