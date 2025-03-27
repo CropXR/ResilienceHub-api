@@ -188,13 +188,11 @@ API_BASE_URL = 'http://localhost:8000'  # Or whatever your API base URL should b
     
 GRAPPELLI_ADMIN_TITLE = ''
 
-# Production settings override - applied when environment variable is set
 if os.environ.get('DJANGO_PRODUCTION') == 'True':
     DEBUG = False
     SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', SECRET_KEY)
     ALLOWED_HOSTS = [os.environ.get('DJANGO_ALLOWED_HOSTS', '*')]
     
-    # Static and media files
     STATIC_ROOT = Path(os.environ.get('DJANGO_STATIC_ROOT'))
     MEDIA_ROOT = Path(os.environ.get('DJANGO_MEDIA_ROOT'))
     
