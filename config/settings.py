@@ -195,8 +195,8 @@ if os.environ.get('DJANGO_PRODUCTION') == 'True':
     ALLOWED_HOSTS = [os.environ.get('DJANGO_ALLOWED_HOSTS', '*')]
     
     # Static and media files
-    STATIC_ROOT = STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT')
-    MEDIA_ROOT = STATIC_ROOT = os.environ.get('DJANGO_MEDIA_ROOT')
+    STATIC_ROOT = Path(os.environ.get('DJANGO_STATIC_ROOT'))
+    MEDIA_ROOT = Path(os.environ.get('DJANGO_MEDIA_ROOT'))
     
     # Update API base URL for production
     API_BASE_URL = os.environ.get('API_BASE_URL', f'https://{ALLOWED_HOSTS[0]}')
