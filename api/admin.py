@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django import forms
 from guardian.admin import GuardedModelAdmin
-from guardian.shortcuts import get_users_with_perms
+from guardian.shortcuts import get_users_with_perms, get_objects_for_user  # Added missing import
 
 from .models import (
     Investigation, Study, Assay, 
@@ -155,7 +155,7 @@ class InvestigationAdmin(CustomGuardedModelAdmin):
 class AssayInline(admin.TabularInline):
     model = Assay
     extra = 0
-    readonly_fields = ['accession_code_link',]
+    readonly_fields = ['accession_code_link']  # Fixed trailing comma
     fields = ['accession_code_link', 'title']
 
     def accession_code_link(self, obj):
@@ -194,7 +194,9 @@ class StudyAdmin(CustomGuardedModelAdmin):
     
     user_count.short_description = "Users"
     
-    inlines = [UserRoleInline, AssayInline]
+    #inlines = [UserRoleInline, AssayInline]
+    inlines = [UserRoleInline]
+    
     
     def save_model(self, request, obj, form, change):
         """When creating a new object, assign owner permissions to current user."""
@@ -205,13 +207,13 @@ class StudyAdmin(CustomGuardedModelAdmin):
             # Assign owner role to the current user
             obj.set_user_role(request.user, 'owner')
 
-#@admin.register(Assay)
+#@admin.register(Assay)  # Commented out admin registration
 class AssayAdmin(CustomGuardedModelAdmin):
     list_display = ('id', 'accession_code', 'study_link', 'investigation_link', 'title', 
                     'measurement_type')
     list_display_links = ('accession_code',)
     search_fields = ('accession_code', 'description', 'study__accession_code', 'study__title')
-    list_filter = ('study__investigation', 'study', 'measurement_type',)  
+    list_filter = ('study__investigation', 'study', 'measurement_type')  # Fixed trailing comma
     ordering = ('id',)
     readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at', 'study')
     fields = ('study', 'accession_code', 'title', 'description', 'measurement_type', 'created_at', 'updated_at')
@@ -233,19 +235,19 @@ class AssayAdmin(CustomGuardedModelAdmin):
 
     investigation_link.short_description = "Investigation"
 
-#@admin.register(UserRole)
+# @admin.register(UserRole)  # Commented out admin registration
 class UserRoleAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'role', 'content_type', 'object_id', 'created_at')
     list_filter = ('role', 'content_type', 'created_at')
     search_fields = ('user__username', 'user__email', 'object_id')
     autocomplete_fields = ['user']
 
-#@admin.register(Institution)
+# @admin.register(Institution)  # Commented out admin registration
 class InstitutionAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'address_street', 'address_house_number', 'address_addition', 'address_postcode', 'address_city', 'address_country']
     search_fields = ['name']
 
-#@admin.register(Sample)
+# @admin.register(Sample)  # Commented out admin registration
 class SampleAdmin(CustomGuardedModelAdmin):
     list_display = ['accession_code', 'id', 'name', 'security_level']
     search_fields = ['accession_code', 'name']
@@ -253,7 +255,7 @@ class SampleAdmin(CustomGuardedModelAdmin):
     fields = ['accession_code', 'name', 'sample_type', 'security_level']
     inlines = [UserRoleInline]
 
-#@admin.register(InvestigationInstitution)
+# @admin.register(InvestigationInstitution)  # Commented out admin registration
 class InvestigationInstitutionAdmin(admin.ModelAdmin):
     list_display = ['id', 'project', 'institution', 'contribution_amount', 'join_date']
     search_fields = ['project__title', 'institution__name']
