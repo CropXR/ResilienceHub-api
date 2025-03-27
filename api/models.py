@@ -45,13 +45,13 @@ class UserRole(models.Model):
 
 
 class Institution(models.Model):
-    name = models.CharField(max_length=255)
-    website = models.URLField(blank=True)
-    address_street = models.TextField(blank=True)
-    address_house_number = models.TextField(blank=True)
-    address_addition = models.TextField(blank=True, null=True)
-    address_postcode = models.TextField(blank=True)
-    address_city = models.CharField(max_length=100)
+    name = models.CharField(max_length=500)
+    website = models.URLField(blank=True, null=True, max_length=500)
+    address_street = models.CharField(blank=True, null=True, max_length=500)
+    address_house_number = models.CharField(blank=True, null=True, max_length=10)
+    address_addition = models.CharField(blank=True, null=True, max_length=100)
+    address_postcode = models.CharField(blank=True, null=True, max_length=10)
+    address_city = models.CharField(blank=True, null=True, max_length=100)
     address_country = CountryField()
     
     # Metadata
@@ -65,7 +65,8 @@ class Institution(models.Model):
 class Investigation(AccessionCodeModel, GuardianMixin):
     PREFIX = 'CXRP'
     title = models.CharField(max_length=1000)
-    description = models.TextField()
+    description = models.TextField(null=True,blank=True)
+    notes = models.TextField(blank=True, null=True)
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
     submission_date = models.DateField(blank=True, null=True)
@@ -155,6 +156,7 @@ class Study(AccessionCodeModel, GuardianMixin):
     study_label = models.CharField(max_length=10)  # e.g., WPC1
     title = models.CharField(max_length=255)
     description = models.TextField(null=True,blank=True)
+    notes = models.TextField(blank=True, null=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True,blank=True)
     public_release_date = models.DateField(null=True,blank=True)

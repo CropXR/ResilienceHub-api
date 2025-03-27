@@ -3,14 +3,14 @@ from django.test import TestCase
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db.utils import IntegrityError
-from isa_api.models import (
+from api.models import (
     Investigation, 
     Study, 
     Assay, 
     Sample,
     SecurityLevel
 )
-from isa_api.permissions import (
+from api.permissions import (
     PERMISSION_VIEW,
     PERMISSION_CHANGE,
     PERMISSION_DELETE,

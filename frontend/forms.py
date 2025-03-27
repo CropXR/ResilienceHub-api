@@ -1,5 +1,5 @@
 from django import forms
-from isa_api.models import Investigation
+from api.models import Investigation
 
 class InvestigationForm(forms.ModelForm):
     class Meta:

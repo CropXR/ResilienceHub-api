@@ -6,5 +6,5 @@ class YourAppConfig(AppConfig):
 
     def ready(self):
         """Connect signals when the app is ready"""
-        import isa_api.signals
+        import api.signals
         

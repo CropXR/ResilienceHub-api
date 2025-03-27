@@ -110,6 +110,10 @@ class StudyInline(admin.TabularInline):
 
     accession_code_link.short_description = 'Accession Code'
 
+class InstitutionInline(admin.TabularInline):
+    model = InvestigationInstitution
+    extra = 0
+
 class InvestigationAdminForm(forms.ModelForm):
     class Meta:
         model = Investigation
@@ -130,7 +134,7 @@ class InvestigationAdmin(CustomGuardedModelAdmin):
     list_filter = ('security_level', 'submission_date', 'public_release_date')
     ordering = ('id',)
     readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at')
-    inlines = [UserRoleInline, StudyInline]
+    inlines = [UserRoleInline, StudyInline, InstitutionInline]
     
     def user_count(self, obj):
         """Count users with permissions on this object."""
@@ -201,7 +205,7 @@ class StudyAdmin(CustomGuardedModelAdmin):
             # Assign owner role to the current user
             obj.set_user_role(request.user, 'owner')
 
-@admin.register(Assay)
+#@admin.register(Assay)
 class AssayAdmin(CustomGuardedModelAdmin):
     list_display = ('id', 'accession_code', 'study_link', 'investigation_link', 'title', 
                     'measurement_type')
@@ -229,19 +233,19 @@ class AssayAdmin(CustomGuardedModelAdmin):
 
     investigation_link.short_description = "Investigation"
 
-@admin.register(UserRole)
+#@admin.register(UserRole)
 class UserRoleAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'role', 'content_type', 'object_id', 'created_at')
     list_filter = ('role', 'content_type', 'created_at')
     search_fields = ('user__username', 'user__email', 'object_id')
     autocomplete_fields = ['user']
 
-@admin.register(Institution)
+#@admin.register(Institution)
 class InstitutionAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'address_street', 'address_house_number', 'address_addition', 'address_postcode', 'address_city', 'address_country']
     search_fields = ['name']
 
-@admin.register(Sample)
+#@admin.register(Sample)
 class SampleAdmin(CustomGuardedModelAdmin):
     list_display = ['accession_code', 'id', 'name', 'security_level']
     search_fields = ['accession_code', 'name']
@@ -249,7 +253,7 @@ class SampleAdmin(CustomGuardedModelAdmin):
     fields = ['accession_code', 'name', 'sample_type', 'security_level']
     inlines = [UserRoleInline]
 
-@admin.register(InvestigationInstitution)
+#@admin.register(InvestigationInstitution)
 class InvestigationInstitutionAdmin(admin.ModelAdmin):
     list_display = ['id', 'project', 'institution', 'contribution_amount', 'join_date']
     search_fields = ['project__title', 'institution__name']

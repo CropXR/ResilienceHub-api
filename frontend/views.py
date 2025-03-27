@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 import requests
 from django.conf import settings
-from isa_api.models import Investigation, InvestigationPermission
+from api.models import Investigation, InvestigationPermission
 from .forms import InvestigationForm
 from django.contrib import messages
 from django.shortcuts import render, redirect
