@@ -232,3 +232,10 @@ if os.environ.get('DJANGO_PRODUCTION') == 'True':
         INSTALLED_APPS.remove('debug_toolbar')
     if 'debug_toolbar.middleware.DebugToolbarMiddleware' in MIDDLEWARE:
         MIDDLEWARE.remove('debug_toolbar.middleware.DebugToolbarMiddleware')
+        
+    DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.getenv('DJANGO_DB_PATH'),
+    }
+}
