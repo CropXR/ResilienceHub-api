@@ -283,6 +283,11 @@ class Study(AccessionCodeModel, GuardianMixin):
                 
         return False
 
+    def create(self, validated_data):
+        user = self.context['request'].user
+        study = Study.objects.create(**validated_data)
+        study.set_user_role(user, 'owner')
+        return study
 
 class Assay(AccessionCodeModel, GuardianMixin):
     PREFIX = 'CXRA'
