@@ -179,9 +179,7 @@ class StudyAdmin(CustomGuardedModelAdmin):
     readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at')
     
     fields = ('investigation', 'title', 'accession_code', 'security_level', 
-              'description', 'notes', 'study_design', 'experiment_factor_type', 
-              'experiment_factor_description',
-              'experiment_factor_values', 'start_date', 
+              'description', 'notes', 'start_date', 
               'end_date', 'submission_date')
     
     def investigation_link(self, obj):
