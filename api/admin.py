@@ -100,8 +100,8 @@ class UserRoleInline(GenericTabularInline):
 class StudyInline(admin.TabularInline):
     model = Study
     extra = 0
-    readonly_fields = ['accession_code_link', 'title']
-    fields = ['accession_code_link', 'title']
+    readonly_fields = ['investigation', 'accession_code_link']
+    fields = ['investigation', 'accession_code_link', 'title']
 
     def accession_code_link(self, obj):
         """Create a clickable link to the Study detail page."""
@@ -109,6 +109,9 @@ class StudyInline(admin.TabularInline):
         return format_html('<a href="{}">{}</a>', url, obj.accession_code)
 
     accession_code_link.short_description = 'Accession Code'
+
+    def has_change_permission(self, request, obj=None):
+        return True
 
 class InstitutionInline(admin.TabularInline):
     model = InvestigationInstitution
@@ -173,7 +176,7 @@ class StudyAdmin(CustomGuardedModelAdmin):
     search_fields = ('accession_code', 'title', 'description', 'investigation__accession_code')
     list_filter = ('investigation', 'submission_date', 'security_level')
     ordering = ('id',)
-    readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at', 'investigation')
+    readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at')
     
     fields = ('investigation', 'title', 'accession_code', 'security_level', 
               'description', 'study_design', 'experiment_factor_type', 
