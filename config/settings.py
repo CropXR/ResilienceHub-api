@@ -171,7 +171,7 @@ STATIC_URL = 'static/'
 
 # In development, look for static files in these directories
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    #BASE_DIR / "static",
     BASE_DIR / "config/static",
 ]
 

@@ -1,6 +1,7 @@
 # isa_api/models.py
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 from guardian.models import UserObjectPermission
 from guardian.shortcuts import get_users_with_perms
@@ -177,8 +178,19 @@ class InvestigationInstitution(models.Model):
 class Study(AccessionCodeModel, GuardianMixin):
     PREFIX = 'CXRS'
     investigation = models.ForeignKey(Investigation, related_name='studies', on_delete=models.CASCADE)
-    study_label = models.CharField(max_length=10)  # e.g., WPC1
     title = models.CharField(max_length=255)
+    slug = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        validators=[
+            RegexValidator(
+                regex='^[a-zA-Z0-9_-]+$',
+                message='Slug label must contain only alphanumeric characters, underscores, and hyphens (no spaces or special characters)',
+                code='invalid_label'
+            )
+        ]
+    )
     description = models.TextField(null=True,blank=True)
     notes = models.TextField(blank=True, null=True)
     start_date = models.DateField(null=True, blank=True)
@@ -191,6 +203,12 @@ class Study(AccessionCodeModel, GuardianMixin):
         choices=SecurityLevel.choices,
         default=SecurityLevel.CONFIDENTIAL
     )
+    
+    def folder_path(self):
+        folder_path = f"s_{self.investigation.accession_code}-{self.accession_code}"
+        if self.slug:
+            folder_path += f"__{self.slug}"
+        return folder_path
     
     experiment_factor_type = models.CharField(max_length=100)
     experiment_factor_description = models.TextField(max_length=100)
