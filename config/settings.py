@@ -191,7 +191,7 @@ GRAPPELLI_ADMIN_TITLE = ''
 if os.environ.get('DJANGO_PRODUCTION') == 'True':
     DEBUG = True
     SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', SECRET_KEY)
-    ALLOWED_HOSTS = [os.environ.get('DJANGO_ALLOWED_HOSTS', '*')]
+    ALLOWED_HOSTS = [os.environ.get('DJANGO_ALLOWED_HOSTS')]
     
     STATIC_ROOT = Path(os.environ.get('DJANGO_STATIC_ROOT'))
     MEDIA_ROOT = Path(os.environ.get('DJANGO_MEDIA_ROOT'))
@@ -206,6 +206,11 @@ if os.environ.get('DJANGO_PRODUCTION') == 'True':
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = False
+    
+    # Add this setting
+    CSRF_TRUSTED_ORIGINS = [
+        f"https://{os.environ.get('DJANGO_ALLOWED_HOSTS')}", 
+    ]    
     
     # Logging
     LOGGING = {
