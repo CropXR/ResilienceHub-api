@@ -177,18 +177,16 @@ class StudySerializer(serializers.ModelSerializer):
         fields = [
             'accession_code',
             'investigation',
-            'title', 
+            'title',
+            'slug',
             'description', 
             'submission_date', 
-            'study_design', 
             'assays',
             'security_level',
             'owners',
             'contributors',
             'readers',
-            'experiment_factor_type',	
-            'experiment_factor_description',	
-            'experiment_factor_values',
+            'folder_name'
         ]
         read_only_fields = ['accession_code', 'investigation']
 

@@ -204,15 +204,11 @@ class Study(AccessionCodeModel, GuardianMixin):
         default=SecurityLevel.CONFIDENTIAL
     )
     
-    def folder_path(self):
-        folder_path = f"s_{self.investigation.accession_code}-{self.accession_code}"
+    def folder_name(self):
+        folder_name = f"s_{self.investigation.accession_code}-{self.accession_code}"
         if self.slug:
-            folder_path += f"__{self.slug}"
-        return folder_path
-    
-    experiment_factor_type = models.CharField(max_length=100)
-    experiment_factor_description = models.TextField(max_length=100)
-    experiment_factor_values = models.TextField(max_length=100)
+            folder_name += f"__{self.slug}"
+        return folder_name
         
     class Meta:
         permissions = [

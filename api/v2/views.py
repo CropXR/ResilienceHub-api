@@ -798,7 +798,8 @@ class ISAExportView(APIView):
         study_list = []
         
         for study in studies:
-            s_dir_name = f"s_{investigation.accession_code}-{study.accession_code}"
+            s_dir_name = f"s_{investigation.accession_code}-{study.accession_code}__{study.slug}"
+
             study_list.append({
                 "study_id": s_dir_name,
                 "study_title": study.title
@@ -840,8 +841,7 @@ class ISAExportView(APIView):
     
     def generate_study_json(self, investigation, study):
         """Generate the study.json content with actual study data."""
-        s_dir_name = f"s_{investigation.accession_code}-{study.accession_code}"
-        
+                
         study_data = {
             "study_id": study.accession_code,
             "study_title": study.title,
@@ -849,10 +849,6 @@ class ISAExportView(APIView):
             "study_description": study.description or "",
             "study_submission_date": study.submission_date.isoformat() if study.submission_date else "",
             "study_public_release_date": study.public_release_date.isoformat() if study.public_release_date else "",
-            "study_design": study.study_design or "",
-            "experiment_factor_type": study.experiment_factor_type,
-            "experiment_factor_description": study.experiment_factor_description,
-            "experiment_factor_values": study.experiment_factor_values
         }
         
         return json.dumps(study_data, indent=2)

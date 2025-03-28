@@ -176,11 +176,11 @@ class StudyAdmin(CustomGuardedModelAdmin):
     search_fields = ('accession_code', 'title', 'description', 'investigation__accession_code')
     list_filter = ('investigation', 'submission_date', 'security_level')
     ordering = ('id',)
-    readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at', 'folder_path')
+    readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at', 'folder_name')
     
     fields = ('investigation', 'title', 'slug', 'accession_code', 'security_level', 
               'description', 'notes', 'start_date', 
-              'end_date', 'submission_date', 'folder_path')
+              'end_date', 'submission_date', 'folder_name')
     
     def investigation_link(self, obj):
         url = reverse('admin:api_investigation_change', args=[obj.investigation.id])
