@@ -178,9 +178,19 @@ class StudyAdmin(CustomGuardedModelAdmin):
     ordering = ('id',)
     readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at', 'folder_name')
     
-    fields = ('investigation', 'title', 'slug', 'accession_code', 'security_level', 
-              'description', 'notes', 'start_date', 
-              'end_date', 'submission_date', 'folder_name')
+    fields = ('investigation', 
+              'title', 'slug', 
+              'accession_code', 
+              'security_level', 
+              'description',
+              'principal_investigator_name',
+              'principal_investigator_email',
+              'notes', 
+              'start_date', 
+              'end_date', 
+              'submission_date', 
+              'folder_name'
+            )
     
     def investigation_link(self, obj):
         url = reverse('admin:api_investigation_change', args=[obj.investigation.id])
@@ -217,7 +227,14 @@ class AssayAdmin(CustomGuardedModelAdmin):
     list_filter = ('study__investigation', 'study', 'measurement_type')  # Fixed trailing comma
     ordering = ('id',)
     readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at', 'study')
-    fields = ('study', 'accession_code', 'title', 'description', 'measurement_type', 'created_at', 'updated_at')
+    fields = ('study', 
+              'accession_code', 
+              'title', 
+              'description',             
+              'measurement_type', 
+              'created_at', 
+              'updated_at'
+             )
     inlines = [UserRoleInline]
 
     def study_link(self, obj):

@@ -96,6 +96,9 @@ class Investigation(AccessionCodeModel, GuardianMixin):
     end_date = models.DateField(blank=True, null=True)
     submission_date = models.DateField(blank=True, null=True)
     public_release_date = models.DateField(blank=True, null=True)
+    principal_investigator_name = models.CharField(max_length=255, null=True, blank=True)
+    principal_investigator_email = models.EmailField(max_length=255, null=True, blank=True)
+    
     security_level = models.CharField(
         max_length=20,
         choices=SecurityLevel.choices,
@@ -198,6 +201,10 @@ class Study(AccessionCodeModel, GuardianMixin):
     public_release_date = models.DateField(null=True,blank=True)
     submission_date = models.DateField(null=True,blank=True)
     study_design = models.TextField(null=True,blank=True)
+    
+    principal_investigator_name = models.CharField(max_length=255, null=True, blank=True)
+    principal_investigator_email = models.EmailField(max_length=255, null=True, blank=True)
+    
     security_level = models.CharField(
         max_length=20,
         choices=SecurityLevel.choices,
