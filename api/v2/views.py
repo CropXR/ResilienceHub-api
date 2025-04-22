@@ -53,7 +53,7 @@ ROLE_PERMISSIONS = {
 
 
 class InvestigationViewSet(viewsets.ModelViewSet):
-    permission_classes = [GuardianPermission]
+    permission_classes = [IsAuthenticated, GuardianPermission]
     queryset = Investigation.objects.all()
     serializer_class = InvestigationSerializer
     lookup_field = 'accession_code'
@@ -126,7 +126,7 @@ class InvestigationViewSet(viewsets.ModelViewSet):
 
 
 class StudyViewSet(viewsets.ModelViewSet):
-    permission_classes = [GuardianPermission]
+    permission_classes = [IsAuthenticated, GuardianPermission]
     queryset = Study.objects.all()
     serializer_class = StudySerializer
     lookup_field = 'accession_code'
@@ -259,7 +259,7 @@ class StudyViewSet(viewsets.ModelViewSet):
 
 
 class AssayViewSet(viewsets.ModelViewSet):
-    permission_classes = [GuardianPermission]
+    permission_classes = [IsAuthenticated, GuardianPermission]
     serializer_class = AssaySerializer
     lookup_field = 'accession_code'
     lookup_value_regex = 'CXRA[0-9]+'
@@ -639,7 +639,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
 class SampleViewSet(viewsets.ModelViewSet):
     queryset = Sample.objects.all()
     serializer_class = SampleSerializer
-    permission_classes = [GuardianPermission]
+    permission_classes = [IsAuthenticated, GuardianPermission]
     lookup_field = 'accession_code'
     lookup_value_regex = 'CXRX[0-9]+'
     
