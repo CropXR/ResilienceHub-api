@@ -1,4 +1,4 @@
-# isa_api/v2/views.py
+# api/v2/views.py
 from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
@@ -67,7 +67,7 @@ class InvestigationViewSet(viewsets.ModelViewSet):
             )
             
             # Check permissions using guardian
-            if not self.request.user.has_perm('isa_api.view_investigation', investigation):
+            if not self.request.user.has_perm('api.view_investigation', investigation):
                 raise PermissionDenied
                 
             return investigation
@@ -90,10 +90,10 @@ class InvestigationViewSet(viewsets.ModelViewSet):
         # Filter based on guardian permissions
         visible_ids = [
             inv.id for inv in base_queryset
-            if checker.has_perm('isa_api.view_investigation', inv) and
+            if checker.has_perm('api.view_investigation', inv) and
             # Apply confidentiality filtering
             (inv.security_level != SecurityLevel.CONFIDENTIAL or 
-             user.has_perm('isa_api.view_investigation', inv))
+             user.has_perm('api.view_investigation', inv))
         ]
         
         return base_queryset.filter(id__in=visible_ids).order_by('id')
@@ -124,6 +124,10 @@ class InvestigationViewSet(viewsets.ModelViewSet):
         # Store role information
         investigation.set_user_role(self.request.user, 'owner')
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        return super().update(request, *args, **kwargs)
 
 class StudyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, GuardianPermission]
@@ -179,21 +183,21 @@ class StudyViewSet(viewsets.ModelViewSet):
                 continue
                 
             # Check guardian permissions
-            if checker.has_perm('isa_api.view_study', study):
+            if checker.has_perm('api.view_study', study):
                 # For confidential studies, only show if explicitly allowed
-                if study.security_level != SecurityLevel.CONFIDENTIAL or checker.has_perm('isa_api.view_study', study):
+                if study.security_level != SecurityLevel.CONFIDENTIAL or checker.has_perm('api.view_study', study):
                     visible_ids.append(study.id)
                     continue
                     
             # Check investigation-level access
-            if study.investigation and checker.has_perm('isa_api.view_investigation', study.investigation):
+            if study.investigation and checker.has_perm('api.view_investigation', study.investigation):
                 # Internal users can see internal studies in investigations they can view
                 if study.security_level == SecurityLevel.INTERNAL and user.is_staff:
                     visible_ids.append(study.id)
                     continue
                 
                 # Investigation-level permissions for contributors and owners
-                if checker.has_perm('isa_api.change_investigation', study.investigation):
+                if checker.has_perm('api.change_investigation', study.investigation):
                     visible_ids.append(study.id)
                     continue
 
@@ -220,10 +224,10 @@ class StudyViewSet(viewsets.ModelViewSet):
                     raise Http404("Study does not belong to the specified investigation")
             
             # Check permissions using guardian
-            if not self.request.user.has_perm('isa_api.view_study', study):
+            if not self.request.user.has_perm('api.view_study', study):
                 # Check investigation-level permission as fallback
                 if not (study.investigation and 
-                        self.request.user.has_perm('isa_api.view_investigation', study.investigation)):
+                        self.request.user.has_perm('api.view_investigation', study.investigation)):
                     raise PermissionDenied("You do not have permission to access this study")
                 
             return study
@@ -257,6 +261,10 @@ class StudyViewSet(viewsets.ModelViewSet):
         # Store role information
         study.set_user_role(self.request.user, 'owner')
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        return super().update(request, *args, **kwargs)
 
 class AssayViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, GuardianPermission]
@@ -330,21 +338,21 @@ class AssayViewSet(viewsets.ModelViewSet):
                 continue
                 
             # Check study permissions
-            if checker.has_perm('isa_api.view_study', study):
+            if checker.has_perm('api.view_study', study):
                 # For confidential studies, only show if explicitly allowed
-                if study.security_level != SecurityLevel.CONFIDENTIAL or checker.has_perm('isa_api.view_study', study):
+                if study.security_level != SecurityLevel.CONFIDENTIAL or checker.has_perm('api.view_study', study):
                     visible_ids.append(assay.id)
                     continue
                     
             # Check investigation-level access
-            if study.investigation and checker.has_perm('isa_api.view_investigation', study.investigation):
+            if study.investigation and checker.has_perm('api.view_investigation', study.investigation):
                 # Internal users can see internal studies' assays
                 if study.security_level == SecurityLevel.INTERNAL and user.is_staff:
                     visible_ids.append(assay.id)
                     continue
                 
                 # Investigation-level permissions for contributors and owners
-                if checker.has_perm('isa_api.change_investigation', study.investigation):
+                if checker.has_perm('api.change_investigation', study.investigation):
                     visible_ids.append(assay.id)
                     continue
 
@@ -383,10 +391,10 @@ class AssayViewSet(viewsets.ModelViewSet):
                     raise Http404("Assay does not belong to the specified study")
             
             # Check permissions using guardian for the parent study
-            if not self.request.user.has_perm('isa_api.view_study', assay.study):
+            if not self.request.user.has_perm('api.view_study', assay.study):
                 # Check investigation-level permission as fallback
                 if not (assay.study.investigation and 
-                        self.request.user.has_perm('isa_api.view_investigation', assay.study.investigation)):
+                        self.request.user.has_perm('api.view_investigation', assay.study.investigation)):
                     raise PermissionDenied("You do not have permission to access this assay")
                 
             return assay
@@ -441,7 +449,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
             # Assign new permissions based on role
             model_name = 'investigation'
             for perm_pattern in ROLE_PERMISSIONS[role]:
-                perm = f'isa_api.{perm_pattern.format(model=model_name)}'
+                perm = f'api.{perm_pattern.format(model=model_name)}'
                 assign_perm(perm, user, investigation)
             
             # Store role information
@@ -565,7 +573,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
             # Assign new permissions based on role
             model_name = 'study'
             for perm_pattern in ROLE_PERMISSIONS[role]:
-                perm = f'isa_api.{perm_pattern.format(model=model_name)}'
+                perm = f'api.{perm_pattern.format(model=model_name)}'
                 assign_perm(perm, user, study)
             
             # Store role information
@@ -594,7 +602,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
             study = Study.objects.get(pk=pk)
             
             # Check if user has access to see permissions
-            if not self.request.user.has_perm('isa_api.view_study', study):
+            if not self.request.user.has_perm('api.view_study', study):
                 raise PermissionDenied("You don't have permission to view this study's permissions")
                 
             # Get all users with permissions on this study
@@ -665,19 +673,19 @@ class SampleViewSet(viewsets.ModelViewSet):
                 
             # Skip confidential in listings unless explicitly permitted
             if sample.security_level == SecurityLevel.CONFIDENTIAL:
-                if checker.has_perm('isa_api.view_sample', sample):
+                if checker.has_perm('api.view_sample', sample):
                     visible_ids.append(sample.id)
                 continue
                 
             # Check internal access
             if sample.security_level == SecurityLevel.INTERNAL:
-                if user.is_staff or checker.has_perm('isa_api.view_sample', sample):
+                if user.is_staff or checker.has_perm('api.view_sample', sample):
                     visible_ids.append(sample.id)
                 continue
                 
             # Check restricted access
             if sample.security_level == SecurityLevel.RESTRICTED:
-                if checker.has_perm('isa_api.view_sample', sample):
+                if checker.has_perm('api.view_sample', sample):
                     visible_ids.append(sample.id)
                 continue
                 

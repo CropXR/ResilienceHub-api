@@ -240,7 +240,6 @@ class StudyPermissionMatrixV2Test(PermissionMatrixTestBase):
             investigation=self.investigation,
             title='Test Study',
             description='Test Study Description',
-            study_label='STUDY1',
             submission_date=timezone.now().date(),
             study_design='Test Design',
             security_level=SecurityLevel.PUBLIC  # Default to public
@@ -308,7 +307,6 @@ class StudyPermissionMatrixV2Test(PermissionMatrixTestBase):
             investigation=self.investigation,
             title='Restricted Study',
             description='Restricted Description',
-            study_label='RESTR1',
             submission_date=timezone.now().date(),
             security_level=SecurityLevel.RESTRICTED
         )

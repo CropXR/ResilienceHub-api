@@ -1,4 +1,4 @@
-# isa_api/v1/views.py
+# api/v1/views.py
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from guardian.shortcuts import assign_perm

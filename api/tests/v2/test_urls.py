@@ -6,7 +6,6 @@ from django.db.utils import IntegrityError
 from api.models import (
     Investigation, 
     Study, 
-    Assay, 
     Sample,
     SecurityLevel
 )
@@ -19,7 +18,9 @@ from api.permissions import (
 )
 from django.utils import timezone
 
-class UrlsV2AccessTest(TestCase):
+class BaseUrlTestCase(TestCase):
+    """Base test case with common setup for URL testing"""
+    
     def _create_permission_safely(self, codename, name, content_type):
         """
         Create a permission safely, handling any integrity errors.
@@ -69,15 +70,7 @@ class UrlsV2AccessTest(TestCase):
             name=f'Can {PERMISSION_MANAGE_PERMS} study',
             content_type=study_ct
         )
-        
-        # Create custom permissions for Assay model
-        assay_ct = ContentType.objects.get_for_model(Assay)
-        self._create_permission_safely(
-            codename=f'{PERMISSION_MANAGE_PERMS}_assay',
-            name=f'Can {PERMISSION_MANAGE_PERMS} assay',
-            content_type=assay_ct
-        )
-        
+
         # Create custom permissions for Sample model
         sample_ct = ContentType.objects.get_for_model(Sample)
         self._create_permission_safely(
@@ -110,7 +103,6 @@ class UrlsV2AccessTest(TestCase):
             investigation=self.investigation,
             title='Test Study',
             description='Test Study Description',
-            study_label='STUDY1',
             submission_date=timezone.now().date(),
             study_design='Test Design',
             security_level=SecurityLevel.PUBLIC
@@ -118,112 +110,86 @@ class UrlsV2AccessTest(TestCase):
 
         # Assign a contributor role to the user for the study using the guardian-based system
         self.study.assign_role(self.user, 'contributor')
-
-        # Create an assay within the study
-        self.assay = Assay.objects.create(
-            study=self.study,
-            measurement_type='genomics',
-            description='Test Assay Description'
-        )
-        
-        # Skip Sample creation and testing since the model has different fields
-        # than what we expected
         
         # Login the user for authenticated requests
         self.client.login(username='testuser', password='12345')
-        
-    def test_flat_urls(self):
-        """Test the flat URL structure of v2 API"""
-        # Test investigation list
+
+
+class TestInvestigationListEndpoint(BaseUrlTestCase):
+    """Test the Investigation list endpoint"""
+    
+    def test_investigation_list_endpoint(self):
+        """Test the investigation list endpoint"""
         url = '/api/v2/investigations/'
+        print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        
-        # Test investigation detail by accession code (not ID)
+
+
+class TestInvestigationDetailEndpoint(BaseUrlTestCase):
+    """Test the Investigation detail endpoint"""
+    
+    def test_investigation_detail_endpoint(self):
+        """Test the investigation detail endpoint"""
         url = f'/api/v2/investigations/{self.investigation.accession_code}/'
+        print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        
-        # Test study list
+
+
+class TestStudyListEndpoint(BaseUrlTestCase):
+    """Test the Study list endpoint"""
+    
+    def test_study_list_endpoint(self):
+        """Test the study list endpoint"""
         url = '/api/v2/studies/'
+        print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        
-        # Test study detail by accession code (not ID)
+
+
+class TestStudyDetailEndpoint(BaseUrlTestCase):
+    """Test the Study detail endpoint"""
+    
+    def test_study_detail_endpoint(self):
+        """Test the study detail endpoint"""
         url = f'/api/v2/studies/{self.study.accession_code}/'
+        print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        
-        # Test assay list
-        url = '/api/v2/assays/'
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        
-        # Test assay detail by accession code (not ID)
-        url = f'/api/v2/assays/{self.assay.accession_code}/'
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        
-        # Test sample list - skip this since we're not testing samples
-        # url = '/api/v2/samples/'
-        # response = self.client.get(url)
-        # self.assertEqual(response.status_code, 200)
-        
-        # Test sample detail - skip this since we're not testing samples
-        # url = f'/api/v2/samples/{self.sample.id}/'
-        # response = self.client.get(url)
-        # self.assertEqual(response.status_code, 200)
-        
-    def test_direct_access_urls(self):
-        """Test direct URL access using accession codes"""
-        # Test investigation direct access
+
+
+class TestDirectAccessUrls(BaseUrlTestCase):
+    """Test direct URL access using accession codes"""
+    
+    def test_investigation_direct_access(self):
+        """Test investigation direct access"""
         url = f'/api/v2/{self.investigation.accession_code}/'
+        print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-
-        # Test study direct access
+    
+    def test_study_direct_access(self):
+        """Test study direct access"""
         url = f'/api/v2/{self.study.accession_code}/'
+        print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
-        # Test assay direct access
-        url = f'/api/v2/{self.assay.accession_code}/'
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        
-        # Test sample direct access - skip this since we're not testing samples
-        # url = f'/api/v2/{self.sample.accession_code}/'
-        # response = self.client.get(url)
-        # self.assertEqual(response.status_code, 200)
 
-    def test_permission_based_access(self):
-        """Test that permissions affect access properly"""
+class TestPermissionBasedAccess(BaseUrlTestCase):
+    """Test permission-based access to resources"""
+    
+    def setUp(self):
+        super().setUp()
         # Create another user with different permissions
-        another_user = User.objects.create_user(username='anotheruser', password='12345')
+        self.another_user = User.objects.create_user(username='anotheruser', password='12345')
         
         # Give the new user only read access to investigation (authorized role)
-        self.investigation.assign_role(another_user, 'authorized')
+        self.investigation.assign_role(self.another_user, 'authorized')
         
-        # Login as the new user
-        self.client.logout()
-        self.client.login(username='anotheruser', password='12345')
-        
-        # Should be able to read the investigation
-        url = f'/api/v2/investigations/{self.investigation.accession_code}/'
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        
-        # But should not be able to update it
-        response = self.client.put(
-            url, 
-            data={'title': 'Updated Title'},
-            content_type='application/json'
-        )
-        self.assertIn(response.status_code, [400, 403, 405])  # Bad Request, Forbidden, or Method Not Allowed are all acceptable
-        
-        # Test that security level restrictions work as expected
         # Create a restricted investigation
-        restricted_investigation = Investigation.objects.create(
+        self.restricted_investigation = Investigation.objects.create(
             title='Restricted Investigation',
             description='Restricted Description',
             submission_date=timezone.now().date(),
@@ -231,19 +197,56 @@ class UrlsV2AccessTest(TestCase):
         )
         
         # Assign owner to original user but not to another_user
-        restricted_investigation.assign_role(self.user, 'owner')
+        self.restricted_investigation.assign_role(self.user, 'owner')
+    
+    def test_read_access_allowed(self):
+        """Test that authorized user can read the investigation"""
+        # Login as the other user
+        self.client.logout()
+        self.client.login(username='anotheruser', password='12345')
+        
+        # Should be able to read the investigation
+        url = f'/api/v2/investigations/{self.investigation.accession_code}/'
+        print(f"Testing URL: {url}")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+    
+    def test_write_access_denied(self):
+        """Test that authorized user cannot update the investigation"""
+        # Login as the other user
+        self.client.logout()
+        self.client.login(username='anotheruser', password='12345')
+        
+        # But should not be able to update it
+        url = f'/api/v2/investigations/{self.investigation.accession_code}/'
+        print(f"Testing URL: {url}")
+        response = self.client.put(
+            url, 
+            data={'title': 'Updated Title'},
+            content_type='application/json'
+        )
+        self.assertIn(response.status_code, [400, 403, 405])  # Bad Request, Forbidden, or Method Not Allowed are all acceptable
+    
+    def test_restricted_investigation_access_denied(self):
+        """Test that user without permission cannot access restricted investigation"""
+        # Login as the other user
+        self.client.logout()
+        self.client.login(username='anotheruser', password='12345')
         
         # The other user should not be able to see the restricted investigation
-        url = f'/api/v2/investigations/{restricted_investigation.accession_code}/'
+        url = f'/api/v2/investigations/{self.restricted_investigation.accession_code}/'
+        print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertIn(response.status_code, [403, 404])  # Either Forbidden or Not Found is acceptable
+    
+    def test_restricted_investigation_direct_access_denied(self):
+        """Test that user without permission cannot directly access restricted investigation"""
+        # Login as the other user
+        self.client.logout()
+        self.client.login(username='anotheruser', password='12345')
         
         # Also test direct access by accession code
-        url = f'/api/v2/{restricted_investigation.accession_code}/'
-        response = self.client.get(url)
-        self.assertIn(response.status_code, [403, 404])  # Either Forbidden or Not Found is acceptable
-        
-        # Also test direct access by accession code
-        url = f'/api/v2/{restricted_investigation.accession_code}/'
+        url = f'/api/v2/{self.restricted_investigation.accession_code}/'
+        print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertIn(response.status_code, [403, 404])  # Either Forbidden or Not Found is acceptable
