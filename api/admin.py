@@ -260,12 +260,12 @@ class UserRoleAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'user__email', 'object_id')
     autocomplete_fields = ['user']
 
-# @admin.register(Institution)  # Commented out admin registration
+@admin.register(Institution)  # Commented out admin registration
 class InstitutionAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'address_street', 'address_house_number', 'address_addition', 'address_postcode', 'address_city', 'address_country']
     search_fields = ['name']
 
-# @admin.register(Sample)  # Commented out admin registration
+@admin.register(Sample)  # Commented out admin registration
 class SampleAdmin(CustomGuardedModelAdmin):
     list_display = ['accession_code', 'id', 'name', 'security_level']
     search_fields = ['accession_code', 'name']
@@ -273,12 +273,11 @@ class SampleAdmin(CustomGuardedModelAdmin):
     fields = ['accession_code', 'name', 'sample_type', 'security_level']
     inlines = [UserRoleInline]
 
-# @admin.register(InvestigationInstitution)  # Commented out admin registration
+#@admin.register(InvestigationInstitution)  # Commented out admin registration
 class InvestigationInstitutionAdmin(admin.ModelAdmin):
     list_display = ['id', 'project', 'institution', 'contribution_amount', 'join_date']
     search_fields = ['project__title', 'institution__name']
-    autocomplete_fields = ['project', 'institution']
-    
+    autocomplete_fields = ['project', 'institution']    
     
 admin.site.site_header = "ResilienceHub API"
 admin.site.site_title = "ResilienceHub Admin"

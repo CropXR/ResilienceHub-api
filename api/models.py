@@ -1,12 +1,14 @@
-# isa_api/models.py
+# api/models.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 from guardian.models import UserObjectPermission
-from guardian.shortcuts import get_users_with_perms
+from guardian.shortcuts import get_users_with_perms, remove_perm
 
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+
 from .choices import SecurityLevel, MeasurementType, TechnologyPlatform
 from .base_models import AccessionCodeModel
 from .permissions import GuardianMixin
@@ -108,7 +110,7 @@ class Investigation(AccessionCodeModel, GuardianMixin):
     participating_institutions = models.ManyToManyField(
         Institution, 
         related_name='research_projects',
-        through='InvestigationInstitution'
+        through='InvestigationInstitution',
     )
         
     class Meta:
@@ -117,56 +119,27 @@ class Investigation(AccessionCodeModel, GuardianMixin):
         ]
         ordering = ['id']
 
-    def set_user_role(self, user, role):
-        """
-        Store the user's role for this investigation using the UserRole model.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        UserRole.objects.update_or_create(
-            user=user,
-            content_type=content_type,
-            object_id=self.id,
-            defaults={'role': role}
-        )
-    
-    def clear_user_role(self, user):
-        """
-        Remove the user's role for this investigation.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        UserRole.objects.filter(
-            user=user,
-            content_type=content_type,
-            object_id=self.id
-        ).delete()
-    
-    def get_users_by_role(self, role):
-        """
-        Get all users with a specific role for this investigation.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        role_assignments = UserRole.objects.filter(
-            content_type=content_type,
-            object_id=self.id,
-            role=role
-        )
-        return User.objects.filter(roles__in=role_assignments)
-    
     def has_owners(self):
-        """Check if this investigation has at least one owner."""
+        """
+        Check if this object has at least one owner.
+        Consistent implementation across different model types.
+        """
         return self.get_users_by_role('owner').exists()
-    
+
+    def set_default_owner(self, user):
+        """
+        Set the default owner for the object when created.
+        Use this in create methods or during object initialization.
+        """
+        # Assign owner role
+        self.set_user_role(user, 'owner')
+
     def create(self, validated_data):
         user = self.context['request'].user
         investigation = Investigation.objects.create(**validated_data)
         investigation.set_user_role(user, UserRole.OWNER)
         return investigation
+
 
 class InvestigationInstitution(models.Model):
     project = models.ForeignKey(Investigation, on_delete=models.CASCADE)
@@ -176,6 +149,8 @@ class InvestigationInstitution(models.Model):
     
     class Meta:
         unique_together = ('project', 'institution')
+        verbose_name = "Institution"
+        verbose_name_plural = "Institutions"
 
 
 class Study(AccessionCodeModel, GuardianMixin):
@@ -211,6 +186,9 @@ class Study(AccessionCodeModel, GuardianMixin):
         default=SecurityLevel.CONFIDENTIAL
     )
     
+    def __str__(self):
+        return f"{self.accession_code} - {self.slug}"
+    
     def folder_name(self):
         folder_name = f"s_{self.investigation.accession_code}-{self.accession_code}"
         if self.slug:
@@ -223,57 +201,9 @@ class Study(AccessionCodeModel, GuardianMixin):
         ]        
         ordering = ['id']
 
-    def set_user_role(self, user, role):
-        """
-        Store the user's role for this study using the UserRole model.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        UserRole.objects.update_or_create(
-            user=user,
-            content_type=content_type,
-            object_id=self.id,
-            defaults={'role': role}
-        )
-    
-    def clear_user_role(self, user):
-        """
-        Remove the user's role for this study.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        UserRole.objects.filter(
-            user=user,
-            content_type=content_type,
-            object_id=self.id
-        ).delete()
-    
-    def get_users_by_role(self, role):
-        """
-        Get all users with a specific role for this study.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        role_assignments = UserRole.objects.filter(
-            content_type=content_type,
-            object_id=self.id,
-            role=role
-        )
-        return User.objects.filter(roles__in=role_assignments)
-    
     def has_owners(self):
         """Check if this study has at least one owner."""
         return self.get_users_by_role('owner').exists()
-    
-    def clean(self):
-        """Validate that the study has at least one owner if it's not new."""
-        super().clean()
-        # Skip validation for new objects (they wouldn't have owners yet)
-        if self.pk and not self.has_owners():
-            raise ValidationError("Study must have at least one owner.")
             
     def _check_security_level_read(self, user):
         """
@@ -332,45 +262,16 @@ class Assay(AccessionCodeModel, GuardianMixin):
     investigation.short_description = 'Investigation'
     
     def set_user_role(self, user, role):
-        """
-        Store the user's role for this assay using the UserRole model.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        UserRole.objects.update_or_create(
-            user=user,
-            content_type=content_type,
-            object_id=self.id,
-            defaults={'role': role}
-        )
+        """Wrapper for utility function to set user role"""
+        set_user_role(self, user, role)
     
     def clear_user_role(self, user):
-        """
-        Remove the user's role for this assay.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        UserRole.objects.filter(
-            user=user,
-            content_type=content_type,
-            object_id=self.id
-        ).delete()
+        """Wrapper for utility function to clear user role"""
+        clear_user_role(self, user)
     
     def get_users_by_role(self, role):
-        """
-        Get all users with a specific role for this assay.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        role_assignments = UserRole.objects.filter(
-            content_type=content_type,
-            object_id=self.id,
-            role=role
-        )
-        return User.objects.filter(roles__in=role_assignments)
+        """Wrapper for utility function to get users by role"""
+        return get_users_by_role(self, role)
     
     def _check_security_level_read(self, user):
         """
@@ -393,43 +294,3 @@ class Sample(AccessionCodeModel, GuardianMixin):
     description = models.TextField(null=True, blank=True)
     sample_type = models.CharField(max_length=50)
     
-    def set_user_role(self, user, role):
-        """
-        Store the user's role for this sample using the UserRole model.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        UserRole.objects.update_or_create(
-            user=user,
-            content_type=content_type,
-            object_id=self.id,
-            defaults={'role': role}
-        )
-    
-    def clear_user_role(self, user):
-        """
-        Remove the user's role for this sample.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        UserRole.objects.filter(
-            user=user,
-            content_type=content_type,
-            object_id=self.id
-        ).delete()
-    
-    def get_users_by_role(self, role):
-        """
-        Get all users with a specific role for this sample.
-        """
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(self)
-        role_assignments = UserRole.objects.filter(
-            content_type=content_type,
-            object_id=self.id,
-            role=role
-        )
-        return User.objects.filter(roles__in=role_assignments)

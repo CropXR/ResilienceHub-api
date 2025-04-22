@@ -1,10 +1,12 @@
-# isa_api/permissions.py
+# api/permissions.py
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
 from guardian.shortcuts import assign_perm, remove_perm, get_perms
 from guardian.core import ObjectPermissionChecker
 from guardian.models import GroupObjectPermission, UserObjectPermission
 from rest_framework import permissions
+from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.models import ContentType
 
 # Use Django's built-in permission names
 PERMISSION_VIEW = 'view'
@@ -284,3 +286,201 @@ class GuardianMixin:
     
     def get_users_by_role(self, role):
         raise NotImplementedError("Subclasses must implement get_users_by_role()")
+    
+def set_user_role(obj, user, role, user_role_model=None):
+    """
+    Assign a role and corresponding permissions to a user for a specific object.
+
+    Args:
+        obj: The model instance to assign permissions for (Investigation, Study, etc.).
+        user: The user to assign the role to.
+        role: The role to assign (e.g., 'owner', 'contributor').
+        user_role_model: Optional UserRole model to use for role assignment.
+
+    Raises:
+        ValueError: If an invalid role is provided.
+
+    Notes:
+        This method:
+        - Creates or updates the user's role
+        - Removes unnecessary existing permissions
+        - Assigns new permissions based on the role
+    """
+    # Validate role
+    if role not in ROLE_PERMISSIONS:
+        raise ValueError(f"Invalid role: {role}")
+
+    # Dynamically import UserRole if not provided
+    if user_role_model is None:
+        from .models import UserRole
+    else:
+        UserRole = user_role_model
+
+    # Get content type
+    content_type = ContentType.objects.get_for_model(obj)
+
+    # Create or update UserRole
+    UserRole.objects.update_or_create(
+        user=user,
+        content_type=content_type,
+        object_id=obj.id,
+        defaults={'role': role}
+    )
+
+    # Get app and model details
+    app_label = obj._meta.app_label
+    model_name = obj._meta.model_name
+
+    # Remove existing permissions not in new role
+    current_perms = get_perms(user, obj)
+    
+    # Generate full permission names
+    new_permissions = [
+        f'{app_label}.{perm}_{model_name}' 
+        for perm in ROLE_PERMISSIONS.get(role, [])
+    ]
+
+    # Remove unnecessary permissions
+    for perm in current_perms:
+        if perm not in new_permissions:
+            remove_perm(perm, user, obj)
+
+    # Assign new permissions
+    for perm in new_permissions:
+        assign_perm(perm, user, obj)
+
+def clear_user_role(obj, user, user_role_model=None):
+    """
+    Remove a user's role and all associated permissions from an object.
+
+    Args:
+        obj: The model instance to remove permissions from.
+        user: The user to remove the role from.
+        user_role_model: Optional UserRole model to use for role removal.
+
+    Raises:
+        ValueError: If attempting to remove the last owner of an object.
+
+    Notes:
+        This method:
+        - Checks for last owner constraint
+        - Removes the UserRole entry
+        - Removes all associated permissions
+    """
+    # Dynamically import UserRole if not provided
+    if user_role_model is None:
+        from .models import UserRole
+    else:
+        UserRole = user_role_model
+
+    # Get content type
+    content_type = ContentType.objects.get_for_model(obj)
+
+    # Check if removing last owner (if applicable)
+    try:
+        # Count owners
+        current_role = get_user_role(obj, user, user_role_model)
+        if current_role == 'owner':
+            owner_count = len(get_users_by_role(obj, 'owner', user_role_model))
+            if owner_count <= 1:
+                raise ValueError("Cannot remove the last owner")
+    except Exception:
+        # If method doesn't exist or fails, skip the check
+        pass
+
+    # Remove UserRole
+    UserRole.objects.filter(
+        user=user,
+        content_type=content_type,
+        object_id=obj.id
+    ).delete()
+
+    # Remove all permissions
+    app_label = obj._meta.app_label
+    model_name = obj._meta.model_name
+    
+    # Remove all potential permissions
+    for perm_type in ['view', 'change', 'delete', 'manage_permissions']:
+        full_perm = f'{app_label}.{perm_type}_{model_name}'
+        try:
+            remove_perm(full_perm, user, obj)
+        except:
+            pass
+
+def get_users_by_role(obj, role, user_role_model=None):
+    """
+    Retrieve all users with a specific role for a given object.
+
+    Args:
+        obj: The model instance to query roles for.
+        role: The role to filter by (e.g., 'owner', 'contributor').
+        user_role_model: Optional UserRole model to use for querying.
+
+    Returns:
+        QuerySet: A distinct set of users with the specified role.
+
+    Example:
+        owners = get_users_by_role(my_study, 'owner')
+    """
+    # Dynamically import UserRole if not provided
+    if user_role_model is None:
+        from .models import UserRole
+    else:
+        UserRole = user_role_model
+
+    # Get content type
+    content_type = ContentType.objects.get_for_model(obj)
+
+    # Query UserRole entries
+    role_assignments = UserRole.objects.filter(
+        content_type=content_type,
+        object_id=obj.id,
+        role=role
+    )
+
+    # Return users
+    return User.objects.filter(roles__in=role_assignments).distinct()
+
+def get_user_role(obj, user, user_role_model=None):
+    """
+    Determine the role of a user for a specific object.
+
+    Args:
+        obj: The model instance to check role for.
+        user: The user to check the role of.
+        user_role_model: Optional UserRole model to use for querying.
+
+    Returns:
+        str: The user's role (e.g., 'owner', 'contributor', 'guest').
+             Defaults to 'guest' if no specific role is found.
+
+    Example:
+        user_role = get_user_role(my_investigation, current_user)
+    """
+    # Dynamically import UserRole if not provided
+    if user_role_model is None:
+        from .models import UserRole
+    else:
+        UserRole = user_role_model
+
+    # Handle special cases
+    if not user or not user.is_authenticated:
+        return 'guest'
+
+    if user.is_superuser:
+        return 'admin'
+
+    # Get content type
+    content_type = ContentType.objects.get_for_model(obj)
+
+    try:
+        # Try to get the specific UserRole
+        user_role = UserRole.objects.get(
+            user=user,
+            content_type=content_type,
+            object_id=obj.id
+        )
+        return user_role.role
+    except UserRole.DoesNotExist:
+        # Default to guest if no role found
+        return 'guest'

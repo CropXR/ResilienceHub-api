@@ -1,4 +1,5 @@
 from django.db import models
+from .permissions import set_user_role, clear_user_role, get_users_by_role 
 
 class AccessionCodeModel(models.Model):
     """
@@ -38,3 +39,15 @@ class AccessionCodeModel(models.Model):
             
     def __str__(self):
         return f'{self.accession_code}: {self.title}'
+
+    def set_user_role(self, user, role):
+        """Wrapper for utility function to set user role"""
+        set_user_role(self, user, role)
+    
+    def clear_user_role(self, user):
+        """Wrapper for utility function to clear user role"""
+        clear_user_role(self, user)
+    
+    def get_users_by_role(self, role):
+        """Wrapper for utility function to get users by role"""
+        return get_users_by_role(self, role)

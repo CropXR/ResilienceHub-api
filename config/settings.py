@@ -48,9 +48,7 @@ INSTALLED_APPS = [
     'rest_framework_datatables',
     'guardian',
     'api',
-    #'frontend',
     'baton.autodiscover',
-
 ]
 
 REST_FRAMEWORK = {
@@ -254,8 +252,8 @@ BATON = {
     'SITE_HEADER': 'Resilience Hub API',
     'SITE_TITLE': 'Admin',
     'INDEX_TITLE': 'Site administration',
-    'SUPPORT_HREF': 'https://github.com/otto-torino/django-baton/issues',
-    'COPYRIGHT': None,
+    'SUPPORT_HREF': 'https://github.com/CropXR/ResilienceHub-api/issues',
+    'COPYRIGHT': '',
     'POWERED_BY': '<a href="https://reit.tudelft.nl">Research Engineering and Infrastructure Team TUD</a>',
     'CONFIRM_UNSAVED_CHANGES': True,
     'SHOW_MULTIPART_UPLOADING': True,
