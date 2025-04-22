@@ -32,7 +32,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'grappelli',
+    #'grappelli',
+    'baton',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,6 +49,8 @@ INSTALLED_APPS = [
     'guardian',
     'api',
     #'frontend',
+    'baton.autodiscover',
+
 ]
 
 REST_FRAMEWORK = {
@@ -186,7 +189,7 @@ INTERNAL_IPS = [
 
 API_BASE_URL = 'http://localhost:8000'  # Or whatever your API base URL should be
     
-GRAPPELLI_ADMIN_TITLE = ''
+#GRAPPELLI_ADMIN_TITLE = ''
 
 if os.environ.get('DJANGO_PRODUCTION') == 'True':
     DEBUG = True
@@ -242,5 +245,58 @@ if os.environ.get('DJANGO_PRODUCTION') == 'True':
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.getenv('DJANGO_DB_PATH'),
+        }
     }
+    
+    
+    
+BATON = {
+    'SITE_HEADER': 'Resilience Hub API',
+    'SITE_TITLE': 'Admin',
+    'INDEX_TITLE': 'Site administration',
+    'SUPPORT_HREF': 'https://github.com/otto-torino/django-baton/issues',
+    'COPYRIGHT': None,
+    'POWERED_BY': '<a href="https://reit.tudelft.nl">Research Engineering and Infrastructure Team TUD</a>',
+    'CONFIRM_UNSAVED_CHANGES': True,
+    'SHOW_MULTIPART_UPLOADING': True,
+    'ENABLE_IMAGES_PREVIEW': True,
+    'CHANGELIST_FILTERS_IN_MODAL': True,
+    'CHANGELIST_FILTERS_ALWAYS_OPEN': False,
+    'CHANGELIST_FILTERS_FORM': True,
+    'CHANGEFORM_FIXED_SUBMIT_ROW': True,
+    'COLLAPSABLE_USER_AREA': False,
+    'MENU_ALWAYS_COLLAPSED': False,
+    'MENU_TITLE': 'Menu',
+    'MESSAGES_TOASTS': False,
+    'GRAVATAR_DEFAULT_IMG': 'retro',
+    'GRAVATAR_ENABLED': True,
+    'FORCE_THEME': None,
+    'LOGIN_SPLASH': '/static/core/img/login-splash.png',
+    'SEARCH_FIELD': {
+        'label': 'Search contents...',
+        'url': '/search/',
+    },
+    'IMAGE_PREVIEW_WIDTH': 200,
+    'MENU': (
+        { 'type': 'title', 'label': 'main', 'apps': ('auth', ) },
+        {
+            'type': 'app',
+            'name': 'auth',
+            'label': 'Authentication',
+            'icon': 'fa fa-lock',
+            'default_open': True,
+            'models': (
+                {
+                    'name': 'user',
+                    'label': 'Users'
+                },
+                {
+                    'name': 'group',
+                    'label': 'Groups'
+                },
+            )
+        },
+        { 'type': 'title', 'label': 'Contents', 'apps': ('flatpages', ) },
+        { 'type': 'model', 'label': 'Pages', 'name': 'flatpage', 'app': 'flatpages' },
+    )
 }

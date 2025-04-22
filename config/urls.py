@@ -1,4 +1,6 @@
-from django.contrib import admin
+#from django.contrib import admin
+from baton.autodiscover import admin
+
 from django.urls import path, include
 from debug_toolbar.toolbar import debug_toolbar_urls
 
@@ -10,13 +12,15 @@ from .root_view import root_view
 urlpatterns = [
     path('', root_view, name='home'),
     path('admin/', admin.site.urls),
+    path('baton/', include('baton.urls')),
+    #path('grappelli/', include('grappelli.urls')),
+
     path('api/', include('api.urls')),
     #path('web/', include('frontend.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path('docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    path('grappelli/', include('grappelli.urls')),
     
     path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
