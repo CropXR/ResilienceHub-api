@@ -190,7 +190,7 @@ API_BASE_URL = 'http://localhost:8000'  # Or whatever your API base URL should b
 #GRAPPELLI_ADMIN_TITLE = ''
 
 if os.environ.get('DJANGO_PRODUCTION') == 'True':
-    DEBUG = True
+    DEBUG = False
     SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', SECRET_KEY)
     ALLOWED_HOSTS = [os.environ.get('DJANGO_ALLOWED_HOSTS')]
     
