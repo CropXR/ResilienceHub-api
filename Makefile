@@ -1,5 +1,5 @@
 erd:
-	python manage.py graph_models isa_api -o erd.png -X AccessionCodeModel
+	python manage.py graph_models api -o erd.png -X AccessionCodeModel
 
 migration:
 	python manage.py makemigrations
