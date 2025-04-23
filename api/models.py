@@ -45,7 +45,9 @@ class UserRole(models.Model):
         indexes = [
             models.Index(fields=['content_type', 'object_id']),
         ]
-
+        
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name} ({self.user.username})"
 
 class Institution(models.Model):
     name = models.CharField(max_length=500)
