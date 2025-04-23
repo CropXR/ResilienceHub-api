@@ -419,7 +419,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
             )
         except Exception as e:
             return Response(
-                {'error': str(e)}, 
+                {'error': 'Internal server error'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -455,7 +455,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
                 return Response({'status': 'success'})
             except ValidationError as e:
                 return Response(
-                    {'error': str(e)}, 
+                    {'error': 'Internal server error'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
                 
@@ -466,7 +466,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
             )
         except Exception as e:
             return Response(
-                {'error': str(e)}, 
+                {'error': 'Internal server error'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -515,7 +515,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
             )
         except Exception as e:
             return Response(
-                {'error': str(e)}, 
+                {'error': 'Internal server error'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -557,12 +557,12 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
             )
         except PermissionDenied as e:
             return Response(
-                {'error': str(e)}, 
+                {'error': 'Internal server error'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         except Exception as e:
             return Response(
-                {'error': str(e)}, 
+                {'error': 'Internal server error'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
