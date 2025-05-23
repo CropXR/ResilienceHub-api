@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The metadata catalogue</title>
+</head>
+<body>
+<div> Hello </div>
+    <ul>
+      {% for investigation in investigations %}
+        <li> {{investigation.title}} </li>
+      {% endfor %}
+    </ul>
+</body>
+</html>
