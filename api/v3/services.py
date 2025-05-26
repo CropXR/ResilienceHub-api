@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from guardian.core import ObjectPermissionChecker
 
 from api.choices import SecurityLevel
-from api.models import Investigation
+from api.database_models.models import Investigation
 
 
 # for each model
@@ -30,6 +30,3 @@ class InvestigationService:
         # nice exception handling
 
         return base_queryset.filter(id__in=visible_ids).order_by('id')
-
-        # apply filtering for permissions
-        # return query_set

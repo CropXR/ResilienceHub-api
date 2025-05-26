@@ -4,14 +4,7 @@ from typing import List, Dict, Any
 from drf_spectacular.types import OpenApiTypes
 
 from django.contrib.auth.models import User
-from ..models import (
-    Investigation, 
-    Study, 
-    Assay, 
-    SecurityLevel, 
-    Institution,
-    Sample
-)
+from ..database_models.models import Institution, Investigation, Study, Assay, Sample
 from drf_spectacular.utils import extend_schema_serializer, extend_schema_field
 
 

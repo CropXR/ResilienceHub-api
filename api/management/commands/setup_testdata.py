@@ -1,16 +1,11 @@
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from django.db import transaction
-from api.models import (
-    Investigation, 
-    Study, 
-    Assay, 
-    SecurityLevel, 
-    UserRole, 
-    InvestigationPermission,
-    StudyPermission
-)
+from django.utils import timezone
+
+from api.database_models.models import SecurityLevel
+from api.database_models.models import UserRole, Investigation
+
 
 class Command(BaseCommand):
     help = 'Populates the database with test data including users and research entities'

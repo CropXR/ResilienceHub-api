@@ -21,14 +21,16 @@ class InvestigationViewSet(ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(InvestigationService.list(request.user))
-        serializer = InvestigationSerializer(queryset, many=True)
+        serializer = InvestigationSerializer(queryset, context={'request': request}, many=True)
         return HttpResponse(serializer.data)
 
+    # add other methods too
 
-# alternative to viewset above
+
+# alternative to InvestigationViewSet
 def catalogue_api(request) -> HttpResponse:
-    investigations = InvestigationService.list()
-    serializer = InvestigationSerializer
+    investigations = InvestigationService.list(request.user)
+    serializer = InvestigationSerializer(investigations, context={'request': request}, many=True)
     return HttpResponse(serializer.data)
 
 

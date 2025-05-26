@@ -5,11 +5,7 @@ from django import forms
 from guardian.admin import GuardedModelAdmin
 from guardian.shortcuts import get_users_with_perms, get_objects_for_user  # Added missing import
 
-from .models import (
-    Investigation, Study, Assay, 
-    UserRole, Institution, Sample, 
-    InvestigationInstitution
-)
+from .database_models.models import UserRole, Institution, Investigation, InvestigationInstitution, Study, Assay, Sample
 from django.contrib.contenttypes.admin import GenericTabularInline
 
 class CustomGuardedModelAdmin(GuardedModelAdmin):

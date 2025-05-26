@@ -1,22 +1,18 @@
 # isa_api/tests/v2/test_urls.py
-from django.test import TestCase
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db.utils import IntegrityError
-from api.models import (
-    Investigation, 
-    Study, 
-    Sample,
+from django.test import TestCase
+from django.utils import timezone
+
+from api.database_models.models import Investigation, Study, Sample
+from api.database_models.models import (
     SecurityLevel
 )
 from api.permissions import (
-    PERMISSION_VIEW,
-    PERMISSION_CHANGE,
-    PERMISSION_DELETE,
-    PERMISSION_MANAGE_PERMS,
-    ROLE_PERMISSIONS
+    PERMISSION_MANAGE_PERMS
 )
-from django.utils import timezone
+
 
 class BaseUrlTestCase(TestCase):
     """Base test case with common setup for URL testing"""

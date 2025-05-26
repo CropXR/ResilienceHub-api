@@ -312,7 +312,7 @@ def set_user_role(obj, user, role, user_role_model=None):
 
     # Dynamically import UserRole if not provided
     if user_role_model is None:
-        from .models import UserRole
+        from api.database_models.models import UserRole
     else:
         UserRole = user_role_model
 
@@ -369,7 +369,7 @@ def clear_user_role(obj, user, user_role_model=None):
     """
     # Dynamically import UserRole if not provided
     if user_role_model is None:
-        from .models import UserRole
+        from api.database_models.models import UserRole
     else:
         UserRole = user_role_model
 
@@ -424,7 +424,7 @@ def get_users_by_role(obj, role, user_role_model=None):
     """
     # Dynamically import UserRole if not provided
     if user_role_model is None:
-        from .models import UserRole
+        from api.database_models.models import UserRole
     else:
         UserRole = user_role_model
 
@@ -459,7 +459,7 @@ def get_user_role(obj, user, user_role_model=None):
     """
     # Dynamically import UserRole if not provided
     if user_role_model is None:
-        from .models import UserRole
+        from api.database_models.models import UserRole
     else:
         UserRole = user_role_model
 

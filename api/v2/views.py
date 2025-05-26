@@ -14,11 +14,8 @@ import json
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from ..models import (
-    Investigation, Study, Assay, 
-    SecurityLevel,
-    Sample
-)
+from ..choices import SecurityLevel
+from ..database_models.models import Investigation, Study, Assay, Sample
 from .serializers import (
     InvestigationSerializer, 
     StudySerializer, 
@@ -59,6 +56,7 @@ class InvestigationViewSet(viewsets.ModelViewSet):
     lookup_field = 'accession_code'
     lookup_value_regex = 'CXRP[0-9]+'
 
+    # why was this implemented separately? Normal get_object already uses get queryset
     def get_object(self):
         try:
             # First try to get the object

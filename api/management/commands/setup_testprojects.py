@@ -2,12 +2,11 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
-from api.models import (
-    Investigation, 
-    Study, 
-    Assay, 
+from api.database_models.models import (
     SecurityLevel
 )
+from api.database_models.models import Investigation, Study, Assay
+
 
 class Command(BaseCommand):
     help = 'Creates comprehensive test data with investigations, studies, and assays'

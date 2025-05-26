@@ -5,10 +5,13 @@
     <title>The metadata catalogue</title>
 </head>
 <body>
-<div> Hello </div>
+<div> The metadata catalogue. Find all investigations here: </div>
     <ul>
       {% for investigation in investigations %}
-        <li> {{investigation.title}} </li>
+        <li>
+            <div>{{investigation.accession_code}} {{investigation.title}} by {{investigation.principal_investigator_name}} </div>
+            <div> Studies: {{investigation.get_studies}} </div>
+        </li>
       {% endfor %}
     </ul>
 </body>
