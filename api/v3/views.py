@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 from django.template import loader
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from ..v2.serializers import InvestigationSerializer
@@ -19,19 +20,17 @@ from .services import InvestigationService
 class InvestigationViewSet(ModelViewSet):
     serializer_class = InvestigationSerializer
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(InvestigationService.list(request.user))
-        serializer = InvestigationSerializer(queryset, context={'request': request}, many=True)
-        return HttpResponse(serializer.data)
+    def get_queryset(self):
+        return InvestigationService.list(self.request.user)
 
-    # add other methods too
+    # add other methods too?
 
 
 # alternative to InvestigationViewSet
-def catalogue_api(request) -> HttpResponse:
+def catalogue_api(request) -> Response:
     investigations = InvestigationService.list(request.user)
     serializer = InvestigationSerializer(investigations, context={'request': request}, many=True)
-    return HttpResponse(serializer.data)
+    return Response(serializer.data)
 
 
 def catalogue_html(request) -> HttpResponse:

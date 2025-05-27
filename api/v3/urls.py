@@ -11,5 +11,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('catalogue/', views.catalogue_html, name='catalogue'),
     path('', views.index_html, name='index'),
-    path('catalogue_api', views.catalogue_api, name='catalogue_api'),
+    path('catalogue_api/', views.catalogue_api, name='catalogue_api'),
 ]
