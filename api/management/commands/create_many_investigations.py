@@ -3,11 +3,12 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
 from api.models import (
+    Investigation,
+    Study,
+    Assay,
     SecurityLevel,
-    InvestigationPermission,
-    StudyPermission
+    UserRole,
 )
-from api.models import UserRole, Investigation, Study, Assay
 
 
 class Command(BaseCommand):

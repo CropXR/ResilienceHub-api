@@ -1,5 +1,4 @@
 # isa_api/tests/v2/test_urls.py
-from unittest import skip
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -15,7 +14,7 @@ from api.permissions import (
 )
 from api.tests.helpers import create_permission_safely
 
-@skip("quickly test v3 views, these are fine")
+
 class BaseUrlTestCase(TestCase):
     """Base test case with common setup for URL testing"""
 

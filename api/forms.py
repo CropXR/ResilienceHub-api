@@ -1,6 +1,6 @@
 # forms.py
 from django import forms
-from api.models import Investigation, Study
+from .models import Investigation, Study
 
 
 class InvestigationForm(forms.ModelForm):

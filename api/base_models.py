@@ -1,6 +1,6 @@
 from django.db import models
 
-from api.permissions import set_user_role, clear_user_role, get_users_by_role
+from .permissions import set_user_role, clear_user_role, get_users_by_role
 
 
 class AccessionCodeModel(models.Model):

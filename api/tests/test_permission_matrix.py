@@ -1,9 +1,7 @@
 # isa_api/tests/v2/test_permission_matrix.py
-from unittest import skip
 
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
@@ -20,7 +18,6 @@ from api.tests.helpers import create_permission_safely
 # this checks if the guardian is well set on the data models and
 # that the permissions on the db objects fit the user types and permissions
 
-@skip("quickly test v3 views, these are fine")
 class PermissionMatrixTestBase(TestCase):
     """Base class for permission matrix tests"""
 
