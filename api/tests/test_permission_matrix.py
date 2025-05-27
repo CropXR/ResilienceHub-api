@@ -1,57 +1,26 @@
 # isa_api/tests/v2/test_permission_matrix.py
-from django.test import TestCase
-from django.contrib.auth.models import User, Permission
+
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.utils import IntegrityError
+from django.test import TestCase
+from django.utils import timezone
+
+from api.models import Investigation, Study
 from api.models import (
-    Investigation, 
-    Study, 
-    Assay, 
-    Sample,
     SecurityLevel
 )
 from api.permissions import (
-    PERMISSION_VIEW,
-    PERMISSION_CHANGE,
-    PERMISSION_DELETE,
-    PERMISSION_MANAGE_PERMS,
-    ROLE_PERMISSIONS,
-    GuardianMixin
+    PERMISSION_MANAGE_PERMS
 )
-from django.utils import timezone
+from api.tests.helpers import create_permission_safely
+
+
+# this checks if the guardian is well set on the data models and
+# that the permissions on the db objects fit the user types and permissions
 
 class PermissionMatrixTestBase(TestCase):
     """Base class for permission matrix tests"""
-    
-    def _create_permission_safely(self, codename, name, content_type):
-        """
-        Create a permission safely, handling any integrity errors.
-        This method ensures we don't get UNIQUE constraint errors.
-        """
-        # First try to get the permission
-        try:
-            perm = Permission.objects.get(
-                codename=codename,
-                content_type=content_type
-            )
-            return perm
-        except Permission.DoesNotExist:
-            # If it doesn't exist, try to create it
-            try:
-                perm = Permission.objects.create(
-                    codename=codename,
-                    name=name,
-                    content_type=content_type
-                )
-                return perm
-            except IntegrityError:
-                # If we get an integrity error, someone else might have created it
-                # Try one more time to get it
-                return Permission.objects.get(
-                    codename=codename,
-                    content_type=content_type
-                )
-    
+
     def _create_guardian_permissions(self, model_class, model_name):
         """
         Create the necessary custom permissions for guardian in the test database.
@@ -59,7 +28,7 @@ class PermissionMatrixTestBase(TestCase):
         """
         content_type = ContentType.objects.get_for_model(model_class)
         # Only create our custom permission
-        self._create_permission_safely(
+        create_permission_safely(
             codename=f'{PERMISSION_MANAGE_PERMS}_{model_name}',
             name=f'Can {PERMISSION_MANAGE_PERMS} {model_name}',
             content_type=content_type
@@ -67,6 +36,7 @@ class PermissionMatrixTestBase(TestCase):
     
     def _setup_users(self):
         """Create test users with different roles"""
+        # does the user name give these users different type of permissions?
         self.guest_user = User.objects.create_user(username='guest', password='password')
         self.internal_user = User.objects.create_user(username='internal', password='password', is_staff=True)
         self.authorized_user = User.objects.create_user(username='authorized', password='password')

@@ -2,7 +2,7 @@ from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 
-from .views import InvestigationViewSet, StudyViewSet, AssayViewSet, SampleViewSet, ISAExportView
+from .views import InvestigationViewSet, StudyViewSet
 
 # Main router for flat routes
 router = DefaultRouter()

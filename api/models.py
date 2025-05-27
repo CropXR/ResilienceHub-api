@@ -1,19 +1,12 @@
-# api/models.py
-from django.db import models
 from django.contrib.auth.models import User
-from django.core.validators import RegexValidator
-from django.core.exceptions import ValidationError
-from guardian.models import UserObjectPermission
-from guardian.shortcuts import get_users_with_perms, remove_perm
-
 from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
-
-from .choices import SecurityLevel, MeasurementType, TechnologyPlatform
-from .base_models import AccessionCodeModel
-from .permissions import GuardianMixin
-
+from django.core.validators import RegexValidator
+from django.db import models
 from django_countries.fields import CountryField
+
+from api.choices import SecurityLevel, MeasurementType, TechnologyPlatform
+from api.base_models import AccessionCodeModel
+from api.permissions import GuardianMixin
 
 
 class UserRole(models.Model):
@@ -28,26 +21,27 @@ class UserRole(models.Model):
         ('owner', 'Owner'),
         ('admin', 'Admin'),
     ]
-    
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    
+
     # Generic relation fields
     content_type = models.ForeignKey('contenttypes.ContentType', on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')  # Add this line
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         unique_together = ('user', 'content_type', 'object_id')
         indexes = [
             models.Index(fields=['content_type', 'object_id']),
         ]
-        
+
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name} ({self.user.username})"
+
 
 class Institution(models.Model):
     name = models.CharField(max_length=500)
@@ -58,14 +52,13 @@ class Institution(models.Model):
     address_postcode = models.CharField(blank=True, null=True, max_length=10)
     address_city = models.CharField(blank=True, null=True, max_length=100)
     address_country = CountryField()
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
         return self.name
-
 
 
 class WorkPackageChoices(models.TextChoices):
@@ -82,6 +75,7 @@ class WorkPackageChoices(models.TextChoices):
     S4 = 's4', 'S4'
     S5 = 's5', 'S5'
     S6 = 's6', 'S6'
+
 
 class Investigation(AccessionCodeModel, GuardianMixin):
     PREFIX = 'CXRP'
@@ -102,7 +96,7 @@ class Investigation(AccessionCodeModel, GuardianMixin):
     public_release_date = models.DateField(blank=True, null=True)
     principal_investigator_name = models.CharField(max_length=255, null=True, blank=True)
     principal_investigator_email = models.EmailField(max_length=255, null=True, blank=True)
-    
+
     security_level = models.CharField(
         max_length=20,
         choices=SecurityLevel.choices,
@@ -110,11 +104,11 @@ class Investigation(AccessionCodeModel, GuardianMixin):
     )
 
     participating_institutions = models.ManyToManyField(
-        Institution, 
+        Institution,
         related_name='research_projects',
         through='InvestigationInstitution',
     )
-        
+
     class Meta:
         permissions = [
             ('manage_permissions_investigation', 'Can manage permissions for investigation'),
@@ -148,7 +142,7 @@ class InvestigationInstitution(models.Model):
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE)
     contribution_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     join_date = models.DateField()
-    
+
     class Meta:
         unique_together = ('project', 'institution')
         verbose_name = "Institution"
@@ -178,35 +172,35 @@ class Study(AccessionCodeModel, GuardianMixin):
     public_release_date = models.DateField(null=True,blank=True)
     submission_date = models.DateField(null=True,blank=True)
     study_design = models.TextField(null=True,blank=True)
-    
+
     principal_investigator_name = models.CharField(max_length=255, null=True, blank=True)
     principal_investigator_email = models.EmailField(max_length=255, null=True, blank=True)
-    
+
     security_level = models.CharField(
         max_length=20,
         choices=SecurityLevel.choices,
         default=SecurityLevel.CONFIDENTIAL
     )
-    
+
     def __str__(self):
         return f"{self.accession_code} - {self.slug}"
-    
+
     def folder_name(self):
         folder_name = f"s_{self.investigation.accession_code}-{self.accession_code}"
         if self.slug:
             folder_name += f"__{self.slug}"
         return folder_name
-        
+
     class Meta:
         permissions = [
             ('manage_permissions_study', 'Can manage permissions for study'),
-        ]        
+        ]
         ordering = ['id']
 
     def has_owners(self):
         """Check if this study has at least one owner."""
         return self.get_users_by_role('owner').exists()
-            
+
     def _check_security_level_read(self, user):
         """
         Enhanced security level check that also considers investigation permissions.
@@ -215,25 +209,25 @@ class Study(AccessionCodeModel, GuardianMixin):
         basic_access = super()._check_security_level_read(user)
         if basic_access:
             return True
-            
+
         # If no direct access, check if user has investigation-level access
         if self.investigation:
             # Get user's role at the investigation level
             inv_role = self.investigation.get_user_role(user)
-            
+
             # Apply RBAC matrix logic based on investigation role
             if self.security_level == 'public':
                 return True
-                
+
             if self.security_level == 'internal':
                 return inv_role in ['internal', 'authorized', 'contributor', 'owner', 'admin']
-                
+
             if self.security_level == 'restricted':
                 return inv_role in ['authorized', 'contributor', 'owner', 'admin']
-                
+
             if self.security_level == 'confidential':
                 return inv_role in ['owner', 'admin']
-                
+
         return False
 
     def create(self, validated_data):
@@ -242,15 +236,16 @@ class Study(AccessionCodeModel, GuardianMixin):
         study.set_user_role(user, 'owner')
         return study
 
+
 class Assay(AccessionCodeModel, GuardianMixin):
     PREFIX = 'CXRA'
-    
+
     study = models.ForeignKey(Study, related_name='assays', on_delete=models.CASCADE)
     measurement_type = models.CharField(max_length=50, choices=MeasurementType.choices)
     title = models.CharField(max_length=1000)
     technology_platform = models.CharField(max_length=50, choices=TechnologyPlatform.choices)
     description = models.TextField()
-    
+
     @property
     def security_level(self):
         """Get security level from parent Study"""
@@ -262,19 +257,19 @@ class Assay(AccessionCodeModel, GuardianMixin):
 
     investigation.admin_order_field = 'study__investigation'
     investigation.short_description = 'Investigation'
-    
+
     def set_user_role(self, user, role):
         """Wrapper for utility function to set user role"""
         set_user_role(self, user, role)
-    
+
     def clear_user_role(self, user):
         """Wrapper for utility function to clear user role"""
         clear_user_role(self, user)
-    
+
     def get_users_by_role(self, role):
         """Wrapper for utility function to get users by role"""
         return get_users_by_role(self, role)
-    
+
     def _check_security_level_read(self, user):
         """
         Enhanced security level check that delegates to the study.
@@ -295,4 +290,3 @@ class Sample(AccessionCodeModel, GuardianMixin):
     name = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     sample_type = models.CharField(max_length=50)
-    

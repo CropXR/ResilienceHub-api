@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The metadata catalogue</title>
+</head>
+<body>
+<div> The metadata catalogue. Find all investigations here: </div>
+    <ul>
+      {% for investigation in investigations %}
+        <li>
+            <div>{{investigation.accession_code}} {{investigation.title}} by {{investigation.principal_investigator_name}} </div>
+            <div> Studies: {{investigation.get_studies}} </div>
+        </li>
+      {% endfor %}
+    </ul>
+</body>
+</html>

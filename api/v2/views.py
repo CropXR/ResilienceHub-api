@@ -1,55 +1,33 @@
 # api/v2/views.py
-from rest_framework import viewsets, status
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.http import Http404
-from django.db import models 
-from rest_framework.exceptions import PermissionDenied
-from guardian.shortcuts import assign_perm, remove_perm, get_perms, get_users_with_perms
-from guardian.core import ObjectPermissionChecker
 import json
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 
-from ..models import (
-    Investigation, Study, Assay, 
-    SecurityLevel,
-    Sample
-)
+from django.contrib.auth.models import Permission
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
+from django.http import Http404
+from guardian.core import ObjectPermissionChecker
+from guardian.shortcuts import assign_perm
+from guardian.shortcuts import remove_perm, get_perms, get_users_with_perms
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from .serializers import (
-    InvestigationSerializer, 
-    StudySerializer, 
+    InvestigationSerializer,
+    StudySerializer,
     AssaySerializer,
     SampleSerializer
 )
+from ..choices import SecurityLevel
+from api.models import Investigation, Study, Assay, Sample
 from ..permissions import GuardianPermission, IsOwnerOrAdmin
 from ..permissions import (
-    ROLE_PERMISSIONS, 
-    PERMISSION_VIEW, 
-    PERMISSION_CHANGE, 
-    PERMISSION_DELETE, 
-    PERMISSION_MANAGE_PERMS
+    ROLE_PERMISSIONS
 )
-from django.contrib.auth.models import Permission
-from django.contrib.contenttypes.models import ContentType
-from guardian.shortcuts import assign_perm
-
-
-# Define guardian permission codenames
-VIEW_PERMISSION = 'view_{model}'
-CHANGE_PERMISSION = 'change_{model}'
-DELETE_PERMISSION = 'delete_{model}'
-MANAGE_PERMISSION = 'manage_permissions_{model}'
-
-# Define the role to permission mapping
-ROLE_PERMISSIONS = {
-    'authorized': [VIEW_PERMISSION],
-    'contributor': [VIEW_PERMISSION, CHANGE_PERMISSION],
-    'owner': [VIEW_PERMISSION, CHANGE_PERMISSION, DELETE_PERMISSION, MANAGE_PERMISSION],
-}
 
 
 class InvestigationViewSet(viewsets.ModelViewSet):
@@ -126,6 +104,7 @@ class InvestigationViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        # why is there here a second step?
         self.check_object_permissions(request, instance)
         return super().update(request, *args, **kwargs)
 

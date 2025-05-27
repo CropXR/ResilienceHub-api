@@ -1,18 +1,11 @@
 # isa_api/v1/serializers.py
-from rest_framework import serializers
+from typing import List
+
 from django.contrib.auth.models import User
-from ..models import (
-    Investigation, 
-    Study, 
-    Assay, 
-    SecurityLevel, 
-    UserRole, 
-    Institution,
-    Sample
-)
-from typing import List, Dict, Any
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
-from ..permissions import GuardianPermission, IsOwnerOrAdmin
+from rest_framework import serializers
+
+from api.models import UserRole, Investigation, Study, Assay, Sample
 
 
 @extend_schema_serializer(component_name="UserV1")
