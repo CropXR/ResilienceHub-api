@@ -29,19 +29,6 @@ from ..permissions import (
     ROLE_PERMISSIONS
 )
 
-# Define guardian permission codenames
-VIEW_PERMISSION = 'view_{model}'
-CHANGE_PERMISSION = 'change_{model}'
-DELETE_PERMISSION = 'delete_{model}'
-MANAGE_PERMISSION = 'manage_permissions_{model}'
-
-# Define the role to permission mapping
-ROLE_PERMISSIONS = {
-    'authorized': [VIEW_PERMISSION],
-    'contributor': [VIEW_PERMISSION, CHANGE_PERMISSION],
-    'owner': [VIEW_PERMISSION, CHANGE_PERMISSION, DELETE_PERMISSION, MANAGE_PERMISSION],
-}
-
 
 class InvestigationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, GuardianPermission]
@@ -50,7 +37,6 @@ class InvestigationViewSet(viewsets.ModelViewSet):
     lookup_field = 'accession_code'
     lookup_value_regex = 'CXRP[0-9]+'
 
-    # why was this implemented separately? Normal get_object already uses get queryset
     def get_object(self):
         try:
             # First try to get the object
@@ -118,6 +104,7 @@ class InvestigationViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        # why is there here a second step?
         self.check_object_permissions(request, instance)
         return super().update(request, *args, **kwargs)
 

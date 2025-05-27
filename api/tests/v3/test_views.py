@@ -1,3 +1,5 @@
+from unittest import skip
+
 from django.test import TestCase
 
 from django.contrib.contenttypes.models import ContentType
@@ -9,17 +11,6 @@ from api.models import Investigation
 from api.permissions import PERMISSION_MANAGE_PERMS
 
 from api.tests.helpers import create_permission_safely
-
-
-# tested
-    # list inv method works
-    # list inv implements permission restrictions
-
-# to test
-    # inv other methods (?) work
-    # inv other methods (?) implement permission restrictions
-
-    # html view implement permissions
 
 
 class BaseUrlTestCase(TestCase):
@@ -66,6 +57,14 @@ class TestInvestigationViewSetPermissions(BaseUrlTestCase):
     Test permission-based access to resources.
     All combinations of roles and permissions should be covered in test_permission_matrix.
     This test checks if these permissions are properly implemented in the views.
+    ALl view set methods are included:
+        get -> list
+        post -> create
+        (per record identifier)
+            get -> retrieve
+            put -> update
+            patch -> partial_update
+            delete -> destroy
     """
 
     def setUp(self):
@@ -73,9 +72,10 @@ class TestInvestigationViewSetPermissions(BaseUrlTestCase):
         # Create another user with different permissions
         self.another_user = User.objects.create_user(username='anotheruser', password='12345')
         self.url = f'{self.base_url}/investigations/'
+        self.record_url = f'{self.url}{self.investigation.accession_code}/'
 
 
-    def test_owner_can_list_public_investigation(self):
+    def test_owner_can_list_investigation(self):
         """Test that authorized user can read the investigation"""
         self.client.login(username='testuser', password='12345')
 
@@ -99,6 +99,7 @@ class TestInvestigationViewSetPermissions(BaseUrlTestCase):
             [investigation['title'] for investigation in response.json()['results']]
         )
 
+    # this test should be redundant
     def test_contributor_can_list_restricted_investigation(self):
         # Create a restricted investigation
         self.investigation = Investigation.objects.create(
@@ -111,17 +112,16 @@ class TestInvestigationViewSetPermissions(BaseUrlTestCase):
 
         self.client.login(username='anotheruser', password='12345')
 
-        # Should be able to read the investigation
         response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
 
+        self.assertEqual(response.status_code, 200)
         results = response.json()['results']
         self.assertIn(
             self.investigation.title,
             [investigation['title'] for investigation in results]
         )
 
-    def test_restricted_investigation_no_listed_to_other_user(self):
+    def test_restricted_investigations_are_hidden_from_other_user(self):
         # Create a restricted investigation
         self.investigation = Investigation.objects.create(
             title='Restricted Investigation',
@@ -132,17 +132,68 @@ class TestInvestigationViewSetPermissions(BaseUrlTestCase):
 
         self.client.login(username='anotheruser', password='12345')
 
-        # Should be able to read the investigation
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
-
         self.assertNotIn(
             self.investigation.title,
             [investigation.title() for investigation in response.json()['results']]
         )
 
-    # add other InvestigationViewSet operations
+    # are there permissions restrictions to test on post/create?
+
+    def test_owner_can_detail_investigation(self):
+        self.client.login(username=self.user.username, password='12345')
+        response = self.client.get(self.record_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.investigation.description)
+
+    def test_other_user_denied_detail_investigation(self):
+        self.investigation = Investigation.objects.create(
+            title='Restricted Investigation',
+            description='Restricted Description',
+            submission_date=timezone.now().date(),
+            security_level=SecurityLevel.RESTRICTED
+        )
+        self.client.login(username='anotheruser', password='12345')
+
+        response = self.client.get(self.record_url)
+        self.assertIn(response.status_code, [400, 403, 405])
+
+    def test_owner_can_update_investigation(self):
+        self.client.login(username=self.user.username, password='12345')
+        response = self.client.put(
+            self.record_url,
+            data={'title': 'Updated Title'},
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, 'Updated Title'
+        )
+
+    def test_other_user_denied_update_investigation(self):
+        self.client.login(username='anotheruser', password='12345')
+        response = self.client.put(
+            self.record_url,
+            data={'title': 'Updated Title'},
+            content_type='application/json'
+        )
+        self.assertIn(response.status_code, [400, 403, 405])
+
+    def test_owner_can_destroy_investigation(self):
+        self.client.login(username=self.user.username, password='12345')
+        response = self.client.delete(self.record_url)
+        self.assertEqual(response.status_code, 204)
+        self.assertContains(
+            response, 'Updated Title'
+        )
+
+    def test_other_user_denied_destroy_investigation(self):
+        self.client.login(username='anotheruser', password='12345')
+        response = self.client.delete(self.record_url)
+        self.assertIn(response.status_code, [400, 403, 405])
+
 
 
 class TestCatalogueHtmlViewPermissions(BaseUrlTestCase):
@@ -157,3 +208,19 @@ class TestCatalogueHtmlViewPermissions(BaseUrlTestCase):
         self.assertEqual(response.status_code, 200)
 
         self.assertContains(response, self.investigation.title)
+
+    def test_restricted_investigations_are_hidden_from_other_user(self):
+        # Create a restricted investigation
+        self.investigation = Investigation.objects.create(
+            title='Restricted Investigation',
+            description='Restricted Description',
+            submission_date=timezone.now().date(),
+            security_level=SecurityLevel.RESTRICTED
+        )
+
+        self.client.login(username='anotheruser', password='12345')
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.investigation.title)

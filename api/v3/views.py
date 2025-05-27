@@ -19,14 +19,21 @@ from .services import InvestigationService
 
 class InvestigationViewSet(ModelViewSet):
     serializer_class = InvestigationSerializer
+    lookup_field = 'accession_code'
+    lookup_value_regex = 'CXRP[0-9]+'
 
     def get_queryset(self):
         return InvestigationService.list(self.request.user)
 
-    # add other methods too?
+    def get_object(self):
+        return InvestigationService.get(user=self.request.user, accession_code=self.kwargs[self.lookup_field])
+
+    def perform_create(self, serializer):
+        InvestigationService.create(user=self.request.user, serializer=serializer)
+
+    # how are contributors added from the view?
 
 
-# alternative to InvestigationViewSet
 def catalogue_api(request) -> Response:
     investigations = InvestigationService.list(request.user)
     serializer = InvestigationSerializer(investigations, context={'request': request}, many=True)

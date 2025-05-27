@@ -39,6 +39,7 @@ class PermissionMatrixTestBase(TestCase):
     
     def _setup_users(self):
         """Create test users with different roles"""
+        # does the user name give these users different type of permissions?
         self.guest_user = User.objects.create_user(username='guest', password='password')
         self.internal_user = User.objects.create_user(username='internal', password='password', is_staff=True)
         self.authorized_user = User.objects.create_user(username='authorized', password='password')
