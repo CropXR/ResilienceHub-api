@@ -2,7 +2,7 @@ from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
 from guardian.core import ObjectPermissionChecker
-from guardian.shortcuts import assign_perm
+from guardian.shortcuts import assign_perm, get_objects_for_user
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.serializers import Serializer
 
@@ -14,7 +14,8 @@ class InvestigationService:
 
     @staticmethod
     def list(user: User) -> list[Investigation]:
-        # get_objects_for_user()
+        # return get_objects_for_user(user, 'api.view_investigation')
+
         base_queryset = Investigation.objects.all()
 
         checker = ObjectPermissionChecker(user)
