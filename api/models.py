@@ -5,7 +5,7 @@ from django.db import models
 from django_countries.fields import CountryField
 
 from api.choices import SecurityLevel, MeasurementType, TechnologyPlatform
-from api.database_models.base_models import AccessionCodeModel
+from api.base_models import AccessionCodeModel
 from api.permissions import GuardianMixin
 
 

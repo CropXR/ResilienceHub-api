@@ -5,7 +5,8 @@ from django.contrib.auth.models import User
 from drf_spectacular.utils import extend_schema_serializer, extend_schema_field
 from rest_framework import serializers
 
-from ..database_models.models import Institution, Investigation, Study, Assay, Sample
+from ..choices import SecurityLevel
+from ..models import Institution, Investigation, Study, Assay, Sample
 
 
 @extend_schema_serializer(component_name="UserV1")

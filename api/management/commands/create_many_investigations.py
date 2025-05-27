@@ -2,12 +2,12 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
-from api.database_models.models import (
+from api.models import (
     SecurityLevel,
     InvestigationPermission,
     StudyPermission
 )
-from api.database_models.models import UserRole, Investigation, Study, Assay
+from api.models import UserRole, Investigation, Study, Assay
 
 
 class Command(BaseCommand):

@@ -1,10 +1,8 @@
 from django.contrib.auth.models import User
 from guardian.core import ObjectPermissionChecker
-from guardian.decorators import permission_required_or_403
-from guardian.shortcuts import get_objects_for_user
 
 from ..choices import SecurityLevel
-from ..database_models.models import Investigation
+from api.models import Investigation
 
 
 # for each model

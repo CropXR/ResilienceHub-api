@@ -1,9 +1,7 @@
 # api/permissions.py
-from django.contrib.auth.models import User, Group
-from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 from guardian.shortcuts import assign_perm, remove_perm, get_perms
 from guardian.core import ObjectPermissionChecker
-from guardian.models import GroupObjectPermission, UserObjectPermission
 from rest_framework import permissions
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
@@ -312,7 +310,7 @@ def set_user_role(obj, user, role, user_role_model=None):
 
     # Dynamically import UserRole if not provided
     if user_role_model is None:
-        from .database_models.models import UserRole
+        from api.models import UserRole
     else:
         UserRole = user_role_model
 
@@ -369,7 +367,7 @@ def clear_user_role(obj, user, user_role_model=None):
     """
     # Dynamically import UserRole if not provided
     if user_role_model is None:
-        from .database_models.models import UserRole
+        from api.models import UserRole
     else:
         UserRole = user_role_model
 
@@ -424,7 +422,7 @@ def get_users_by_role(obj, role, user_role_model=None):
     """
     # Dynamically import UserRole if not provided
     if user_role_model is None:
-        from .database_models.models import UserRole
+        from api.models import UserRole
     else:
         UserRole = user_role_model
 
@@ -459,7 +457,7 @@ def get_user_role(obj, user, user_role_model=None):
     """
     # Dynamically import UserRole if not provided
     if user_role_model is None:
-        from .database_models.models import UserRole
+        from api.models import UserRole
     else:
         UserRole = user_role_model
 

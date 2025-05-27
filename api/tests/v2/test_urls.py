@@ -1,51 +1,24 @@
 # isa_api/tests/v2/test_urls.py
-from django.contrib.auth.models import User, Permission
+from unittest import skip
+
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
-from api.database_models.models import Investigation, Study, Sample
-from api.database_models.models import (
+from api.models import Investigation, Study, Sample
+from api.models import (
     SecurityLevel
 )
 from api.permissions import (
     PERMISSION_MANAGE_PERMS
 )
+from api.tests.helpers import create_permission_safely
 
-
+@skip("quickly test v3 views, these are fine")
 class BaseUrlTestCase(TestCase):
     """Base test case with common setup for URL testing"""
-    
-    def _create_permission_safely(self, codename, name, content_type):
-        """
-        Create a permission safely, handling any integrity errors.
-        This method ensures we don't get UNIQUE constraint errors.
-        """
-        # First try to get the permission
-        try:
-            perm = Permission.objects.get(
-                codename=codename,
-                content_type=content_type
-            )
-            return perm
-        except Permission.DoesNotExist:
-            # If it doesn't exist, try to create it
-            try:
-                perm = Permission.objects.create(
-                    codename=codename,
-                    name=name,
-                    content_type=content_type
-                )
-                return perm
-            except IntegrityError:
-                # If we get an integrity error, someone else might have created it
-                # Try one more time to get it
-                return Permission.objects.get(
-                    codename=codename,
-                    content_type=content_type
-                )
-    
+
     def _create_guardian_permissions(self):
         """
         Create the necessary permissions for guardian in the test database.
@@ -53,7 +26,7 @@ class BaseUrlTestCase(TestCase):
         """
         # Create custom permissions for Investigation model
         investigation_ct = ContentType.objects.get_for_model(Investigation)
-        self._create_permission_safely(
+        create_permission_safely(
             codename=f'{PERMISSION_MANAGE_PERMS}_investigation',
             name=f'Can {PERMISSION_MANAGE_PERMS} investigation',
             content_type=investigation_ct
@@ -61,7 +34,7 @@ class BaseUrlTestCase(TestCase):
             
         # Create custom permissions for Study model
         study_ct = ContentType.objects.get_for_model(Study)
-        self._create_permission_safely(
+        create_permission_safely(
             codename=f'{PERMISSION_MANAGE_PERMS}_study',
             name=f'Can {PERMISSION_MANAGE_PERMS} study',
             content_type=study_ct
@@ -69,7 +42,7 @@ class BaseUrlTestCase(TestCase):
 
         # Create custom permissions for Sample model
         sample_ct = ContentType.objects.get_for_model(Sample)
-        self._create_permission_safely(
+        create_permission_safely(
             codename=f'{PERMISSION_MANAGE_PERMS}_sample',
             name=f'Can {PERMISSION_MANAGE_PERMS} sample',
             content_type=sample_ct

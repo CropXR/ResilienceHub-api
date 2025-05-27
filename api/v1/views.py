@@ -19,7 +19,7 @@ from .serializers import (
     SampleSerializer,
 )
 from ..choices import SecurityLevel
-from ..database_models.models import UserRole, Investigation, Study, Assay, Sample
+from api.models import UserRole, Investigation, Study, Assay, Sample
 from ..permissions import GuardianPermission, IsOwnerOrAdmin
 from ..permissions import (
     ROLE_PERMISSIONS
