@@ -5,14 +5,16 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
-from api.database_models.models import Investigation, Study
-from api.database_models.models import (
+from ...database_models.models import Investigation, Study
+from ...database_models.models import (
     SecurityLevel
 )
-from api.permissions import (
+from ...permissions import (
     PERMISSION_MANAGE_PERMS
 )
 
+# this checks if the guardian is well set on the data models and
+# that the permissions on the db objects fit the user types and permissions
 
 class PermissionMatrixTestBase(TestCase):
     """Base class for permission matrix tests"""

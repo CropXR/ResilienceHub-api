@@ -2,8 +2,8 @@ from django.http import HttpResponse
 from django.template import loader
 from rest_framework.viewsets import ModelViewSet
 
-from api.v2.serializers import InvestigationSerializer
-from api.v3.services import InvestigationService
+from ..v2.serializers import InvestigationSerializer
+from .services import InvestigationService
 
 
 # for each model
