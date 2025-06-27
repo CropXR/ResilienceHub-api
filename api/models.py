@@ -192,7 +192,7 @@ class Study(AccessionCodeModel, GuardianMixin):
         return f"{self.accession_code} - {self.slug}"
     
     def folder_name(self):
-        folder_name = f"s_{self.investigation.accession_code}-{self.accession_code}"
+        folder_name = f"i_{self.investigation.work_package}_{self.investigation.accession_code}/s_{self.investigation.accession_code}-{self.accession_code}"
         if self.slug:
             folder_name += f"__{self.slug}"
         return folder_name
