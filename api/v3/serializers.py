@@ -33,7 +33,7 @@ class InvestigationSerializer(serializers.ModelSerializer):
     owners = serializers.SerializerMethodField()
     contributors = serializers.SerializerMethodField()
     readers = serializers.SerializerMethodField()
-    
+
     # Add this if it's a many-to-many or foreign key relationship
     participating_institutions = serializers.PrimaryKeyRelatedField(
         queryset=Institution.objects.all(),  # Replace with your actual model
@@ -63,7 +63,8 @@ class InvestigationSerializer(serializers.ModelSerializer):
             'owners',
             'contributors',
             'readers',
-            'participating_institutions'
+            'participating_institutions',
+            'work_package',
         ]
         read_only_fields = ['accession_code', 'created_at', 'updated_at']
 
