@@ -70,7 +70,7 @@ class Institution(models.Model):
 
 class WorkPackageChoices(models.TextChoices):
     WPC1 = 'wpc1', 'WPC1'
-    WPC2 = 'wpc2', 'WPC2'
+    WPC2 = 'WPC2', 'WPC2'
     WPC3 = 'wpc3', 'WPC3'
     WPC4 = 'wpc4', 'WPC4'
     WPC5 = 'wpc5', 'WPC5'
