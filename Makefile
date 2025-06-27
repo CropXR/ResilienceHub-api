@@ -21,4 +21,4 @@ reset:
 	rm db.sqlite3
 	make migration
 	python manage.py create_testusers
-	#python manage.py create_many_investigations
+	python manage.py create_testdata
