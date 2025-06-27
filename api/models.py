@@ -9,7 +9,7 @@ from guardian.shortcuts import get_users_with_perms, remove_perm
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
-from .choices import SecurityLevel, MeasurementType, TechnologyPlatform
+from .choices import SecurityLevel, MeasurementType, TechnologyPlatform, WorkPackageChoices
 from .base_models import AccessionCodeModel
 from .permissions import GuardianMixin
 
@@ -66,22 +66,6 @@ class Institution(models.Model):
     def __str__(self):
         return self.name
 
-
-
-class WorkPackageChoices(models.TextChoices):
-    WPC1 = 'wpc1', 'WPC1'
-    WPC2 = 'WPC2', 'WPC2'
-    WPC3 = 'wpc3', 'WPC3'
-    WPC4 = 'wpc4', 'WPC4'
-    WPC5 = 'wpc5', 'WPC5'
-    WPC6 = 'wpc6', 'WPC6'
-    WPC7 = 'wpc7', 'WPC7'
-    S1 = 's1', 'S1'
-    S2 = 's2', 'S2'
-    S3 = 's3', 'S3'
-    S4 = 's4', 'S4'
-    S5 = 's5', 'S5'
-    S6 = 's6', 'S6'
 
 class Investigation(AccessionCodeModel, GuardianMixin):
     PREFIX = 'CXRP'
