@@ -5,13 +5,13 @@ from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import assign_perm
 from guardian.shortcuts import remove_perm, get_perms, get_users_with_perms
 from metadata_template_generator.generate_excel_template.format import get_default_conditional_formatting, \
     get_default_number_formatting
-from metadata_template_generator.generate_excel_template.template_generator import generate_template
+from metadata_template_generator.generate_excel_template.template_generator import generate_template, get_template_name
 from metadata_template_generator.parser import parse_schema
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -50,16 +50,33 @@ ROLE_PERMISSIONS = {
 }
 
 
-def template_download(request) -> Response:
-    metadata_type = request.data["metadata_type"]
+# def template_download(request) -> Response:
+#     metadata_type = request.POST.get('data')["metadata_type"]
+#     schema = parse_schema(metadata_type)
+#     metadata_template = generate_template(
+#         schema=schema,
+#         metadata_type=metadata_type,
+#         conditional_formatting=get_default_conditional_formatting(metadata_type),
+#         number_formatting=get_default_number_formatting(metadata_type),
+#     )
+#     return Response(metadata_template)
+
+
+def sequencing_template_download(request) -> Response:
+    metadata_type = "sequencing"
     schema = parse_schema(metadata_type)
-    template = generate_template(
+    file_name = get_template_name(metadata_type, schema.version)
+    generate_template(
         schema=schema,
         metadata_type=metadata_type,
         conditional_formatting=get_default_conditional_formatting(metadata_type),
         number_formatting=get_default_number_formatting(metadata_type),
     )
-    return Response(template)
+    with open(file_name, "rb") as excel:
+        data = excel.read()
+    response = HttpResponse(data, content_type='application/ms-excel')
+    response['Content-Disposition'] = f'attachment; filename={file_name}'
+    return response
 
 
 def upload_template(request) -> Response:

@@ -35,5 +35,5 @@ urlpatterns = [
     #        name='direct-assay-access'),
     # ISA Export endpoint - using re_path instead of path for more flexibility
     #path('export/isa/<str:code>', ISAExportView.as_view(), name='isa-export'),
-    path('template_download/', views.template_download, name='template_download'),
+    path('sequencing_template_download/', views.sequencing_template_download, name='sequencing_template_download'),
 ]
