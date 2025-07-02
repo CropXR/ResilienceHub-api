@@ -250,3 +250,10 @@ class TestPermissionBasedAccess(BaseUrlTestCase):
         print(f"Testing URL: {url}")
         response = self.client.get(url)
         self.assertIn(response.status_code, [403, 404])  # Either Forbidden or Not Found is acceptable
+
+    def test_test(self):
+        # Also test direct access by accession code
+        url = f'/api/v2/template_download/'
+        response = self.client.post(url, data={"metadata_type": "sequencing"})
+        self.assertEqual(response.status_code, 200)
+        assert response.body

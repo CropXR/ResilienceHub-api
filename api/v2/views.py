@@ -1,42 +1,40 @@
 # api/v2/views.py
-from rest_framework import viewsets, status
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.http import Http404
-from django.db import models 
-from rest_framework.exceptions import PermissionDenied
-from guardian.shortcuts import assign_perm, remove_perm, get_perms, get_users_with_perms
-from guardian.core import ObjectPermissionChecker
 import json
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 
-from ..models import (
-    Investigation, Study, Assay, 
-    SecurityLevel,
-    Sample
-)
+from django.contrib.auth.models import Permission
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
+from django.http import Http404
+from guardian.core import ObjectPermissionChecker
+from guardian.shortcuts import assign_perm
+from guardian.shortcuts import remove_perm, get_perms, get_users_with_perms
+from metadata_template_generator.generate_excel_template.format import get_default_conditional_formatting, \
+    get_default_number_formatting
+from metadata_template_generator.generate_excel_template.template_generator import generate_template
+from metadata_template_generator.parser import parse_schema
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from .serializers import (
-    InvestigationSerializer, 
-    StudySerializer, 
+    InvestigationSerializer,
+    StudySerializer,
     AssaySerializer,
     SampleSerializer
 )
+from ..models import (
+    Investigation, Study, Assay,
+    SecurityLevel,
+    Sample
+)
 from ..permissions import GuardianPermission, IsOwnerOrAdmin
 from ..permissions import (
-    ROLE_PERMISSIONS, 
-    PERMISSION_VIEW, 
-    PERMISSION_CHANGE, 
-    PERMISSION_DELETE, 
-    PERMISSION_MANAGE_PERMS
+    ROLE_PERMISSIONS
 )
-from django.contrib.auth.models import Permission
-from django.contrib.contenttypes.models import ContentType
-from guardian.shortcuts import assign_perm
-
 
 # Define guardian permission codenames
 VIEW_PERMISSION = 'view_{model}'
@@ -50,6 +48,29 @@ ROLE_PERMISSIONS = {
     'contributor': [VIEW_PERMISSION, CHANGE_PERMISSION],
     'owner': [VIEW_PERMISSION, CHANGE_PERMISSION, DELETE_PERMISSION, MANAGE_PERMISSION],
 }
+
+
+def template_download(request) -> Response:
+    metadata_type = request.data["metadata_type"]
+    schema = parse_schema(metadata_type)
+    template = generate_template(
+        schema=schema,
+        metadata_type=metadata_type,
+        conditional_formatting=get_default_conditional_formatting(metadata_type),
+        number_formatting=get_default_number_formatting(metadata_type),
+    )
+    return Response(template)
+
+
+def upload_template(request) -> Response:
+    file = request.data
+
+
+# def submit_template_page() -> Response:
+#     investigations = InvestigationService.list(request.user)
+#     template = loader.get_template('catalogue.html')
+#     context = {'investigations': investigations}
+#     return HttpResponse(template.render(context, request))
 
 
 class InvestigationViewSet(viewsets.ModelViewSet):

@@ -2,6 +2,7 @@ from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 
+from . import views
 from .views import InvestigationViewSet, StudyViewSet, AssayViewSet, SampleViewSet, ISAExportView
 
 # Main router for flat routes
@@ -34,5 +35,5 @@ urlpatterns = [
     #        name='direct-assay-access'),
     # ISA Export endpoint - using re_path instead of path for more flexibility
     #path('export/isa/<str:code>', ISAExportView.as_view(), name='isa-export'),
-
+    path('template_download/', views.template_download, name='template_download'),
 ]
