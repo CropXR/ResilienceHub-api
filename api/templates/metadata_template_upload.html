@@ -13,5 +13,17 @@
 <button type='submit'> Phenotyping </button>
 </form>
 
+<form action="uploadTemplate" enctype="multipart/form-data" method="POST">
+    {% csrf_token %}
+    <p>
+    Please specify a file:<br>
+    <input type="text" name="title" size="30">
+    <input name="file" type="file" size="40">
+    </p>
+    <div>
+    <input type="submit" value="Send">
+    </div>
+</form>
+
 </body>
 </html>

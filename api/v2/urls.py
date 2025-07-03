@@ -39,4 +39,5 @@ urlpatterns = [
     path('metadata_templates_page/', views.metadata_templates_page, name='metadata_templates_page'),
     path('metadata_templates_page/getSequencingTemplate', views.sequencing_template_download, name='sequencing_template_download'),
     path('metadata_templates_page/getPhenotypingTemplate', views.phenotyping_template_download, name='phenotyping_template_download'),
+    path('metadata_templates_page/uploadTemplate', views.ingest_metadata_template, name='ingest_metadata_template'),
 ]

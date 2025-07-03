@@ -5,7 +5,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.template import loader
 from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import assign_perm
@@ -13,7 +13,7 @@ from guardian.shortcuts import remove_perm, get_perms, get_users_with_perms
 from metadata_template_generator.generate_excel_template.format import get_default_conditional_formatting, \
     get_default_number_formatting
 from metadata_template_generator.generate_excel_template.template_generator import generate_template, get_template_name
-from metadata_template_generator.parser import parse_schema
+from metadata_template_generator.parser import parse_schema, read_values_from_template
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -86,6 +86,7 @@ def phenotyping_template_download(request) -> Response:
 def _return_template(metadata_type: str) -> Response:
     schema = parse_schema(metadata_type)
     file_name = get_template_name(metadata_type, schema.version)
+    # check how to do this without generating the file?
     generate_template(
         schema=schema,
         metadata_type=metadata_type,
@@ -99,8 +100,25 @@ def _return_template(metadata_type: str) -> Response:
     return response
 
 
-def upload_template(request) -> Response:
-    file = request.data
+def ingest_metadata_template(request) -> Response:
+    if request.method == "POST" and (file := request.FILES['file']):
+        # todo: get metadata type from request
+        metadata_type = "sequencing"
+        handle_uploaded_metadata_template(request.FILES["file"], metadata_type)
+        return HttpResponse("Form is valid")
+    else:
+        return HttpResponse("Failed to upload")
+
+
+def handle_uploaded_metadata_template(file, metadata_type: str):
+    file_name = 'ingested_file.xlsx'
+    with open(file_name, "wb+") as destination:
+        for chunk in file.chunks():
+            destination.write(chunk)
+    values = read_values_from_template(
+        metadata_type, file_name, include_new_columns=True
+    )
+    # do something with these values (validate, write to bd, ect)
 
 
 class InvestigationViewSet(viewsets.ModelViewSet):
