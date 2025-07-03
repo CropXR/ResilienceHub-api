@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.http import Http404, HttpResponse
+from django.template import loader
 from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import assign_perm
 from guardian.shortcuts import remove_perm, get_perms, get_users_with_perms
@@ -61,9 +62,28 @@ ROLE_PERMISSIONS = {
 #     )
 #     return Response(metadata_template)
 
+def metadata_templates_page(request) -> Response:
+    template = loader.get_template('metadata_template_upload.html')
+    return HttpResponse(template.render({}, request))
+
+# def submit_template_page() -> Response:
+#     investigations = InvestigationService.list(request.user)
+#     template = loader.get_template('catalogue.html')
+#     context = {'investigations': investigations}
+#     return HttpResponse(template.render(context, request))
+
 
 def sequencing_template_download(request) -> Response:
     metadata_type = "sequencing"
+    return _return_template(metadata_type)
+
+
+def phenotyping_template_download(request) -> Response:
+    metadata_type = "phenotyping"
+    return _return_template(metadata_type)
+
+
+def _return_template(metadata_type: str) -> Response:
     schema = parse_schema(metadata_type)
     file_name = get_template_name(metadata_type, schema.version)
     generate_template(
@@ -81,13 +101,6 @@ def sequencing_template_download(request) -> Response:
 
 def upload_template(request) -> Response:
     file = request.data
-
-
-# def submit_template_page() -> Response:
-#     investigations = InvestigationService.list(request.user)
-#     template = loader.get_template('catalogue.html')
-#     context = {'investigations': investigations}
-#     return HttpResponse(template.render(context, request))
 
 
 class InvestigationViewSet(viewsets.ModelViewSet):
