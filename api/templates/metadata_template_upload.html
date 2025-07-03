@@ -5,25 +5,35 @@
     <title>Metadata template download and upload.</title>
 </head>
 <body>
-<div> These are the metadata templates. Click a button to download. </div>
-<form action='getSequencingTemplate' method='GET'>
-<button type='submit'> Sequencing </button>
-</form>
-<form action='getPhenotypingTemplate' method='GET'>
-<button type='submit'> Phenotyping </button>
-</form>
+    <header> These are the metadata templates. Click a button to download. </header>
+    <form action='getSequencingTemplate' method='GET'>
+        <button type='submit'> Sequencing </button>
+    </form>
+    <form action='getPhenotypingTemplate' method='GET'>
+        <button type='submit'> Phenotyping </button>
+    </form>
 
-<form action="uploadTemplate" enctype="multipart/form-data" method="POST">
-    {% csrf_token %}
-    <p>
-    Please specify a file:<br>
-    <input type="text" name="title" size="30">
-    <input name="file" type="file" size="40">
-    </p>
-    <div>
-    <input type="submit" value="Send">
-    </div>
-</form>
+
+    <header>Upload template</header>
+    <form action="uploadTemplate" enctype="multipart/form-data" method="POST">
+        {% csrf_token %}
+
+        <p>Select metadata type: </p>
+
+        <input type="radio" id="sequencing" name="metadata_type" value="sequencing">
+        <label for="sequencing">Sequencing</label><br>
+        <input type="radio" id="phenotyping" name="metadata_type" value="phenotyping">
+        <label for="phenotyping">Phenotyping</label><br>
+
+        <p>
+        Please specify a file:<br>
+        <input type="text" name="title" size="30">
+        <input name="file" type="file" size="40">
+        </p>
+        <div>
+        <input type="submit" value="Send">
+        </div>
+    </form>
 
 </body>
 </html>

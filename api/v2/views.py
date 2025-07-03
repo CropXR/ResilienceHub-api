@@ -10,10 +10,14 @@ from django.template import loader
 from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import assign_perm
 from guardian.shortcuts import remove_perm, get_perms, get_users_with_perms
+from metadata_template_generator.generate_excel_template.appendix_sheet import create_section_appendix_sheet
 from metadata_template_generator.generate_excel_template.format import get_default_conditional_formatting, \
-    get_default_number_formatting
-from metadata_template_generator.generate_excel_template.template_generator import generate_template, get_template_name
+    get_default_number_formatting, format_workbook
+from metadata_template_generator.generate_excel_template.section_sheet import create_section_sheet
+from metadata_template_generator.generate_excel_template.template_generator import generate_template, get_template_name, \
+    sort_sections, create_overview_sheet
 from metadata_template_generator.parser import parse_schema, read_values_from_template
+from openpyxl.workbook import Workbook
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -51,26 +55,9 @@ ROLE_PERMISSIONS = {
 }
 
 
-# def template_download(request) -> Response:
-#     metadata_type = request.POST.get('data')["metadata_type"]
-#     schema = parse_schema(metadata_type)
-#     metadata_template = generate_template(
-#         schema=schema,
-#         metadata_type=metadata_type,
-#         conditional_formatting=get_default_conditional_formatting(metadata_type),
-#         number_formatting=get_default_number_formatting(metadata_type),
-#     )
-#     return Response(metadata_template)
-
 def metadata_templates_page(request) -> Response:
     template = loader.get_template('metadata_template_upload.html')
     return HttpResponse(template.render({}, request))
-
-# def submit_template_page() -> Response:
-#     investigations = InvestigationService.list(request.user)
-#     template = loader.get_template('catalogue.html')
-#     context = {'investigations': investigations}
-#     return HttpResponse(template.render(context, request))
 
 
 def sequencing_template_download(request) -> Response:
@@ -86,24 +73,31 @@ def phenotyping_template_download(request) -> Response:
 def _return_template(metadata_type: str) -> Response:
     schema = parse_schema(metadata_type)
     file_name = get_template_name(metadata_type, schema.version)
-    # check how to do this without generating the file?
-    generate_template(
-        schema=schema,
-        metadata_type=metadata_type,
-        conditional_formatting=get_default_conditional_formatting(metadata_type),
-        number_formatting=get_default_number_formatting(metadata_type),
-    )
-    with open(file_name, "rb") as excel:
-        data = excel.read()
-    response = HttpResponse(data, content_type='application/ms-excel')
+    wb = _generate_template(schema, metadata_type)
+    response = HttpResponse(wb, content_type='application/ms-excel')
     response['Content-Disposition'] = f'attachment; filename={file_name}'
     return response
 
 
+def _generate_template(schema, metadata_type) -> Workbook:
+    wb = Workbook()
+    sections = sort_sections(schema.sections, metadata_type)
+    create_overview_sheet(sections, wb, schema.version)
+    for section in sections:
+        create_section_sheet(
+            section, wb,
+            conditional_formatting=get_default_conditional_formatting(metadata_type),
+            number_formatting=get_default_number_formatting(metadata_type)
+        )
+        create_section_appendix_sheet(section, wb)
+    format_workbook(wb)
+    return wb
+
+
 def ingest_metadata_template(request) -> Response:
+    print(request)
     if request.method == "POST" and (file := request.FILES['file']):
-        # todo: get metadata type from request
-        metadata_type = "sequencing"
+        metadata_type = request.POST['metadata_type']
         handle_uploaded_metadata_template(request.FILES["file"], metadata_type)
         return HttpResponse("Form is valid")
     else:
