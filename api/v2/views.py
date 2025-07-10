@@ -5,6 +5,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from django.db.models import Model
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.template import loader
 from guardian.core import ObjectPermissionChecker
@@ -17,6 +18,7 @@ from metadata_template_generator.generate_excel_template.section_sheet import cr
 from metadata_template_generator.generate_excel_template.template_generator import generate_template, get_template_name, \
     sort_sections, create_overview_sheet
 from metadata_template_generator.parser import parse_schema, read_values_from_template
+from openpyxl.styles.builtins import title
 from openpyxl.workbook import Workbook
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -34,7 +36,7 @@ from .serializers import (
 from ..models import (
     Investigation, Study, Assay,
     SecurityLevel,
-    Sample
+    Sample, Institution, InvestigationInstitution
 )
 from ..permissions import GuardianPermission, IsOwnerOrAdmin
 from ..permissions import (
@@ -98,13 +100,13 @@ def ingest_metadata_template(request) -> Response:
     print(request)
     if request.method == "POST" and (file := request.FILES['file']):
         metadata_type = request.POST['metadata_type']
-        handle_uploaded_metadata_template(request.FILES["file"], metadata_type)
+        save_data_from_uploaded_metadata_template_to_db(request.FILES["file"], metadata_type, request.user)
         return HttpResponse("Form is valid")
     else:
         return HttpResponse("Failed to upload")
 
 
-def handle_uploaded_metadata_template(file, metadata_type: str):
+def save_data_from_uploaded_metadata_template_to_db(file, metadata_type: str, user):
     file_name = 'ingested_file.xlsx'
     with open(file_name, "wb+") as destination:
         for chunk in file.chunks():
@@ -112,7 +114,41 @@ def handle_uploaded_metadata_template(file, metadata_type: str):
     values = read_values_from_template(
         metadata_type, file_name, include_new_columns=True
     )
-    # do something with these values (validate, write to bd, ect)
+    investigation = Investigation(
+        title=values['investigation'][0]['investigation_title'],
+        description=values['investigation'][0]['investigation_description']
+    )
+    investigation.save()
+    set_owner_permission(investigation, 'investigation', user)
+    institution = Institution(
+        name=values['institution'][0]['organisation']
+    )
+    institution.save()
+    investitition = InvestigationInstitution(project=investigation, institution=institution)
+    investitition.save()
+
+
+def set_owner_permission(model: Model, model_name: str, user):
+    # Get the content type for Investigation
+    content_type = ContentType.objects.get_for_model(model)
+
+    # Ensure permissions exist before assigning
+    for perm_type in ROLE_PERMISSIONS['owner']:
+        # Construct the full permission codename
+        codename = f'{perm_type}_{model_name}'
+
+        # Create the permission if it doesn't exist
+        Permission.objects.get_or_create(
+            content_type=content_type,
+            codename=codename,
+            defaults={'name': f'Can {perm_type} {model_name}'}
+        )
+
+        # Assign the permission
+        assign_perm(codename, user, model)
+
+    # Store role information
+    model.set_user_role(user, 'owner')
 
 
 class InvestigationViewSet(viewsets.ModelViewSet):
@@ -164,28 +200,7 @@ class InvestigationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Set the current user as owner when creating a new investigation
         investigation = serializer.save()
-        
-        # Get the content type for Investigation
-        content_type = ContentType.objects.get_for_model(investigation)
-        
-        # Ensure permissions exist before assigning
-        model_name = 'investigation'
-        for perm_type in ROLE_PERMISSIONS['owner']:
-            # Construct the full permission codename
-            codename = f'{perm_type}_{model_name}'
-            
-            # Create the permission if it doesn't exist
-            Permission.objects.get_or_create(
-                content_type=content_type,
-                codename=codename,
-                defaults={'name': f'Can {perm_type} {model_name}'}
-            )
-            
-            # Assign the permission
-            assign_perm(codename, self.request.user, investigation)
-        
-        # Store role information
-        investigation.set_user_role(self.request.user, 'owner')
+        set_owner_permission(investigation, 'investigation', self.request.user)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -301,28 +316,7 @@ class StudyViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Set the current user as owner when creating a new study
         study = serializer.save()
-        
-        # Get the content type for Study
-        content_type = ContentType.objects.get_for_model(study)
-        
-        # Ensure permissions exist before assigning
-        model_name = 'study'
-        for perm_type in ROLE_PERMISSIONS['owner']:
-            # Construct the full permission codename
-            codename = f'{perm_type}_{model_name}'
-            
-            # Create the permission if it doesn't exist
-            Permission.objects.get_or_create(
-                content_type=content_type,
-                codename=codename,
-                defaults={'name': f'Can {perm_type} {model_name}'}
-            )
-            
-            # Assign the permission
-            assign_perm(codename, self.request.user, study)
-        
-        # Store role information
-        study.set_user_role(self.request.user, 'owner')
+        set_owner_permission(study, 'study', self.request.user)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
