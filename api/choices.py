@@ -30,6 +30,8 @@ class WorkPackageChoices(models.TextChoices):
     WPC5 = 'WPC5', 'WPC5'
     WPC6 = 'WPC6', 'WPC6'
     WPC7 = 'WPC7', 'WPC7'
+    WPT = 'WPT', 'WPT'
+    WPD = 'WPD', 'WPD'
     S1 = 'S1', 'S1'
     S2 = 'S2', 'S2'
     S3 = 'S3', 'S3'
