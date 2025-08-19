@@ -131,13 +131,29 @@ class InvestigationAdminForm(forms.ModelForm):
 class InvestigationAdmin(CustomGuardedModelAdmin):
     form = InvestigationAdminForm
 
-    list_display = ('id', 'accession_code', 'title', 'security_level', 'user_count')
+    list_display = ('id', 'accession_code', 'work_package', 'title', 'security_level', 'user_count')
     list_display_links = ('accession_code', 'title')
     search_fields = ('accession_code', 'title', 'description')
     list_filter = ('security_level', 'submission_date', 'public_release_date')
     ordering = ('id',)
     readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at')
     inlines = [UserRoleInline, StudyInline, InstitutionInline]
+    
+    fields = (
+        'accession_code',
+        'work_package',
+        'title',
+        'description',
+        'security_level',
+        'submission_date',
+        'public_release_date',
+        'created_at',
+        'updated_at',
+        'principal_investigator_name',
+        'principal_investigator_email',
+        'principal_investigator',
+        'notes'
+    )   
     
     def user_count(self, obj):
         """Count users with permissions on this object."""
@@ -176,7 +192,7 @@ class StudyAdmin(CustomGuardedModelAdmin):
     search_fields = ('accession_code', 'title', 'description', 'investigation__accession_code')
     list_filter = ('investigation', 'submission_date', 'security_level')
     ordering = ('id',)
-    readonly_fields = ('id', 'accession_code', 'work_package', 'accession_code', 'created_at', 'updated_at', 'folder_name')
+    readonly_fields = ('id', 'accession_code', 'work_package', 'accession_code', 'created_at', 'updated_at', 'folder_name', 'principal_investigator')
     
     fields = (
         'accession_code',       
@@ -188,12 +204,15 @@ class StudyAdmin(CustomGuardedModelAdmin):
         'description',
         'principal_investigator_name',
         'principal_investigator_email',
+        'principal_investigator',
+        'dataset_administrator',
         'notes', 
         'start_date', 
         'end_date', 
         'submission_date', 
         'folder_name'          
     )
+    
     
     def investigation_link(self, obj):
         url = reverse('admin:api_investigation_change', args=[obj.investigation.id])

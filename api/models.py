@@ -26,7 +26,7 @@ class UserRole(models.Model):
         ('authorized', 'Authorized'),
         ('contributor', 'Contributor'),
         ('owner', 'Owner'),
-        ('admin', 'Admin'),
+        ('admin', 'Dataset Administrator'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles')
@@ -98,6 +98,15 @@ class Investigation(AccessionCodeModel, GuardianMixin):
         related_name='research_projects',
         through='InvestigationInstitution',
     )
+    
+    principal_investigator = models.ForeignKey(
+        User,
+        related_name='principal_investigations',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Principal investigator for this investigation"
+    )
         
     class Meta:
         permissions = [
@@ -163,8 +172,25 @@ class Study(AccessionCodeModel, GuardianMixin):
     submission_date = models.DateField(null=True,blank=True)
     study_design = models.TextField(null=True,blank=True)
     
+    dataset_administrator = models.ForeignKey(
+        User,
+        related_name='dataset_administrations',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Dataset administrator for this study"
+    )
+    
     principal_investigator_name = models.CharField(max_length=255, null=True, blank=True)
     principal_investigator_email = models.EmailField(max_length=255, null=True, blank=True)
+    
+    def principal_investigator(self):
+        """
+        Return the principal investigator for this study.
+        """
+        return self.investigation.principal_investigator if self.investigation else None
+    
+    
     
     security_level = models.CharField(
         max_length=20,
@@ -181,6 +207,8 @@ class Study(AccessionCodeModel, GuardianMixin):
         """
         return self.investigation.work_package if self.investigation else None
     
+    work_package.admin_order_field = 'investigation__work_package'
+
     def folder_name(self):
         folder_name = f"i_{self.investigation.work_package}_{self.investigation.accession_code}/s_{self.investigation.accession_code}-{self.accession_code}"
         if self.slug:
