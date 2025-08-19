@@ -19,3 +19,4 @@ tablib==3.8.0
 djangorestframework-datatables==0.7.2
 django-baton==4.2.2
 django-guardian==2.4.0
+dotenv==0.0.7
