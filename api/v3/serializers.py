@@ -175,8 +175,8 @@ class StudySerializer(serializers.ModelSerializer):
     @extend_schema_field({'type': 'object', 'properties': {'first_name': {'type': 'string'}, 'last_name': {'type': 'string'}, 'email': {'type': 'string'}}})
     def get_dataset_administrator(self, obj) -> dict:
         """Get data administrator from parent investigation"""
-        if obj.investigation and hasattr(obj.investigation, 'dataset_administrator') and obj.investigation.dataset_administrator:
-            user = obj.investigation.dataset_administrator
+        if obj.dataset_administrator:
+            user = obj.dataset_administrator
             return {
                 'first_name': user.first_name,
                 'last_name': user.last_name,
