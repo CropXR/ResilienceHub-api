@@ -175,6 +175,12 @@ class Study(AccessionCodeModel, GuardianMixin):
     def __str__(self):
         return f"{self.accession_code} - {self.slug}"
     
+    def work_package(self):
+        """
+        Return the work package of the parent investigation.
+        """
+        return self.investigation.work_package if self.investigation else None
+    
     def folder_name(self):
         folder_name = f"i_{self.investigation.work_package}_{self.investigation.accession_code}/s_{self.investigation.accession_code}-{self.accession_code}"
         if self.slug:

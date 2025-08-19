@@ -170,27 +170,30 @@ class AssayInline(admin.TabularInline):
 
 @admin.register(Study)
 class StudyAdmin(CustomGuardedModelAdmin):
-    list_display = ('id', 'accession_code', 'investigation_link', 'slug', 
+    list_display = ('id', 'accession_code', 'investigation_link', 'work_package', 'slug', 
                     'title', 'submission_date', 'security_level', 'user_count')
     list_display_links = ('accession_code', 'title')
     search_fields = ('accession_code', 'title', 'description', 'investigation__accession_code')
     list_filter = ('investigation', 'submission_date', 'security_level')
     ordering = ('id',)
-    readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at', 'folder_name')
+    readonly_fields = ('id', 'accession_code', 'work_package', 'accession_code', 'created_at', 'updated_at', 'folder_name')
     
-    fields = ('investigation', 
-              'title', 'slug', 
-              'accession_code', 
-              'security_level', 
-              'description',
-              'principal_investigator_name',
-              'principal_investigator_email',
-              'notes', 
-              'start_date', 
-              'end_date', 
-              'submission_date', 
-              'folder_name'
-            )
+    fields = (
+        'accession_code',       
+        'work_package',
+        'investigation', 
+        'title', 
+        'security_level', 
+        'slug', 
+        'description',
+        'principal_investigator_name',
+        'principal_investigator_email',
+        'notes', 
+        'start_date', 
+        'end_date', 
+        'submission_date', 
+        'folder_name'          
+    )
     
     def investigation_link(self, obj):
         url = reverse('admin:api_investigation_change', args=[obj.investigation.id])
