@@ -11,26 +11,34 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
 import os
+
+current_file = Path(__file__).resolve()
+parent_dir = current_file.parent.parent
+env_path = parent_dir / '.env'
+
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"Loaded environment from: {env_path}")
+else:
+    print(f"Warning: .env file not found at: {env_path}")
+
+load_dotenv(env_path)
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+
+if not SECRET_KEY:
+    raise ValueError("DJANGO_SECRET_KEY not found in environment variables")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-gdßsxjxhh(mw!jj0ps#(aadrcfb_g1gbeia&mubksmv^um6yv)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
-
 INSTALLED_APPS = [
     'baton',
     'django.contrib.admin',

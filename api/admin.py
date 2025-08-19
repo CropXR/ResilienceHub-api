@@ -13,8 +13,16 @@ from .models import (
 )
 from django.contrib.contenttypes.admin import GenericTabularInline
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
 
+# Unregister the original User admin
+admin.site.unregister(User)
 
+# Register the CustomUser model with a custom UserAdmin
+@admin.register(CustomUser)
+class CustomUserAdmin(UserAdmin):
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_active')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
 
 class CustomGuardedModelAdmin(GuardedModelAdmin):
     def get_queryset(self, request):
@@ -308,8 +316,3 @@ class InvestigationInstitutionAdmin(admin.ModelAdmin):
 admin.site.site_header = "ResilienceHub API"
 admin.site.site_title = "ResilienceHub Admin"
 admin.site.index_title = "Welcome to ResilienceHub Admin"
-
-# Register with your proxy model
-@admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
-    pass  # Inherits all the original UserAdmin functionality
