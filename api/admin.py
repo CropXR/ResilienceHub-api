@@ -170,7 +170,7 @@ class InvestigationAdmin(CustomGuardedModelAdmin):
     def user_count(self, obj):
         """Count users with permissions on this object."""
         users = get_users_with_perms(obj)
-        return len(users)
+        return users.count()
     
     user_count.short_description = "Users"
     
@@ -235,7 +235,9 @@ class StudyAdmin(CustomGuardedModelAdmin):
     def user_count(self, obj):
         """Count users with permissions on this object."""
         users = get_users_with_perms(obj)
-        return len(users)
+        print(f"Users with perms for {obj}: {list(users.values_list('username', flat=True))}")
+        print(f"Count: {users.count()}")
+        return users.count()
     
     user_count.short_description = "Users"
     

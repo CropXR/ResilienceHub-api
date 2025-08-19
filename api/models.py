@@ -57,6 +57,77 @@ class UserRole(models.Model):
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name} ({self.user.username})"
 
+    def delete(self, *args, **kwargs):
+        """Remove Guardian permissions when UserRole is deleted."""
+        from guardian.shortcuts import remove_perm
+        
+        # Define what permissions each role should have
+        role_permissions = {
+            'guest': ['view'],
+            'internal': ['view'],
+            'authorized': ['view'],
+            'contributor': ['view', 'change'],
+            'owner': ['view', 'change', 'delete'],
+            'admin': ['view', 'change', 'delete'],
+        }
+        
+        if self.role in role_permissions and self.content_object:
+            model_name = self.content_type.model
+            app_label = self.content_type.app_label
+            
+            # Remove all permissions for this role
+            for action in role_permissions[self.role]:
+                perm_code = f'{app_label}.{action}_{model_name}'
+                try:
+                    remove_perm(perm_code, self.user, self.content_object)
+                    print(f"Removed permission {perm_code} from {self.user.username}")
+                except Exception as e:
+                    print(f"Error removing permission {perm_code} from {self.user.username}: {e}")
+        
+        # Call the parent delete method
+        super().delete(*args, **kwargs)
+    
+    def save(self, *args, **kwargs):
+        """Assign Guardian permissions when UserRole is saved."""
+        from guardian.shortcuts import assign_perm
+        
+        # Check if this is an update (role change) vs new creation
+        if self.pk:
+            # Get the old role to remove its permissions first
+            try:
+                old_role = UserRole.objects.get(pk=self.pk)
+                if old_role.role != self.role:
+                    # Role changed, remove old permissions
+                    old_role.delete()  # This will remove old permissions
+            except UserRole.DoesNotExist:
+                pass
+        
+        # Save the model first
+        super().save(*args, **kwargs)
+        
+        # Define what permissions each role should have
+        role_permissions = {
+            'guest': ['view'],
+            'internal': ['view'],
+            'authorized': ['view'],
+            'contributor': ['view', 'change'],
+            'owner': ['view', 'change', 'delete'],
+            'admin': ['view', 'change', 'delete'],
+        }
+        
+        if self.role in role_permissions and self.content_object:
+            model_name = self.content_type.model
+            app_label = self.content_type.app_label
+            
+            # Assign permissions for this role
+            for action in role_permissions[self.role]:
+                perm_code = f'{app_label}.{action}_{model_name}'
+                try:
+                    assign_perm(perm_code, self.user, self.content_object)
+                    print(f"Assigned permission {perm_code} to {self.user.username}")
+                except Exception as e:
+                    print(f"Error assigning permission {perm_code} to {self.user.username}: {e}")
+
 class Institution(models.Model):
     name = models.CharField(max_length=500)
     website = models.URLField(blank=True, null=True, max_length=500)
@@ -121,21 +192,6 @@ class Investigation(AccessionCodeModel, GuardianMixin):
             ('manage_permissions_investigation', 'Can manage permissions for investigation'),
         ]
         ordering = ['id']
-
-    def has_owners(self):
-        """
-        Check if this object has at least one owner.
-        Consistent implementation across different model types.
-        """
-        return self.get_users_by_role('owner').exists()
-
-    def set_default_owner(self, user):
-        """
-        Set the default owner for the object when created.
-        Use this in create methods or during object initialization.
-        """
-        # Assign owner role
-        self.set_user_role(user, 'owner')
 
     def create(self, validated_data):
         user = self.context['request'].user
