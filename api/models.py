@@ -15,6 +15,14 @@ from .permissions import GuardianMixin
 
 from django_countries.fields import CountryField
 
+class CustomUser(User):
+    class Meta:
+        proxy = True
+    
+    def __str__(self):
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.username
 
 class UserRole(models.Model):
     """
@@ -29,7 +37,7 @@ class UserRole(models.Model):
         ('admin', 'Dataset Administrator'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='roles')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     
     # Generic relation fields
@@ -100,7 +108,7 @@ class Investigation(AccessionCodeModel, GuardianMixin):
     )
     
     principal_investigator = models.ForeignKey(
-        User,
+        CustomUser,
         related_name='principal_investigations',
         on_delete=models.SET_NULL,
         null=True,
@@ -173,7 +181,7 @@ class Study(AccessionCodeModel, GuardianMixin):
     study_design = models.TextField(null=True,blank=True)
     
     dataset_administrator = models.ForeignKey(
-        User,
+        CustomUser,
         related_name='dataset_administrations',
         on_delete=models.SET_NULL,
         null=True,

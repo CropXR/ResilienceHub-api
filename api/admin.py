@@ -8,9 +8,13 @@ from guardian.shortcuts import get_users_with_perms, get_objects_for_user  # Add
 from .models import (
     Investigation, Study, Assay, 
     UserRole, Institution, Sample, 
-    InvestigationInstitution
+    InvestigationInstitution,
+    CustomUser
 )
 from django.contrib.contenttypes.admin import GenericTabularInline
+from django.contrib.auth.admin import UserAdmin
+
+
 
 class CustomGuardedModelAdmin(GuardedModelAdmin):
     def get_queryset(self, request):
@@ -304,3 +308,8 @@ class InvestigationInstitutionAdmin(admin.ModelAdmin):
 admin.site.site_header = "ResilienceHub API"
 admin.site.site_title = "ResilienceHub Admin"
 admin.site.index_title = "Welcome to ResilienceHub Admin"
+
+# Register with your proxy model
+@admin.register(CustomUser)
+class CustomUserAdmin(UserAdmin):
+    pass  # Inherits all the original UserAdmin functionality
