@@ -190,8 +190,8 @@ class AssayInline(admin.TabularInline):
 
 @admin.register(Study)
 class StudyAdmin(CustomGuardedModelAdmin):
-    list_display = ('id', 'accession_code', 'investigation_link', 'work_package', 'slug', 
-                    'title', 'submission_date', 'security_level', 'user_count')
+    list_display = ('id', 'accession_code', 'investigation_link', 'work_package', 
+                    'slug', 'title', 'security_level', 'dataset_administrator', 'user_count')
     list_display_links = ('accession_code', 'title')
     search_fields = ('accession_code', 'title', 'description', 'investigation__accession_code')
     list_filter = ('investigation', 'submission_date', 'security_level')
