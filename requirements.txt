@@ -7,7 +7,7 @@ ruff==0.9.6
 safehttpx==0.1.6
 tomlkit==0.13.2
 websockets==14.2
-requests==2.32
+requests==2.32.4
 djangorestframework==3.15.2
 django>=5.1.8
 django-debug-toolbar==5.0.1
