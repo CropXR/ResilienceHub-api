@@ -176,7 +176,7 @@ class GuardianMixin:
     
     def get_user_role(self, user):
         """
-        Determine user's role based on permissions on this object.
+        Get user's role from UserRole model for this object.
         """
         # Handle special cases first
         if not user or not user.is_authenticated:
@@ -185,28 +185,22 @@ class GuardianMixin:
         if user.is_superuser:
             return 'admin'
         
-        # Get model-specific details
-        app_label = self._meta.app_label
-        model_name = self._meta.model_name
+        # Get role from UserRole model
+        from django.contrib.contenttypes.models import ContentType
         
-        # Get user's permissions on this object
-        user_perms = set(get_perms(user, self))
-        
-        # Check roles from highest to lowest
-        role_hierarchy = ['owner', 'contributor', 'authorized']
-        for role in role_hierarchy:
-            required_perms = {
-                f'{perm}_{model_name}' for perm in self.get_permissions_for_role(role)
-            }
-            
-            if required_perms.issubset(user_perms):
-                return role
-        
-        # Check staff status
-        if user.is_staff:
-            return 'internal'
-        
-        return 'guest'
+        try:
+            content_type = ContentType.objects.get_for_model(self)
+            user_role = UserRole.objects.get(
+                user=user,
+                content_type=content_type,
+                object_id=self.pk
+            )
+            return user_role.role
+        except UserRole.DoesNotExist:
+            # Check staff status for fallback
+            if user.is_staff:
+                return 'internal'
+            return 'guest'
     
     def can_read(self, user):
         """Check if user can read this object based on guardian permissions"""
@@ -277,16 +271,72 @@ class GuardianMixin:
             return False
         return self.can_read(user)
     
-    # Abstract methods to be implemented by concrete models
+    # Concrete implementations using UserRole model
     def set_user_role(self, user, role):
-        raise NotImplementedError("Subclasses must implement set_user_role()")
+        """
+        Set or update a user's role for this object using UserRole model.
+        If role is None, remove the user's role.
+        """
+        from django.contrib.contenttypes.models import ContentType
+        
+        content_type = ContentType.objects.get_for_model(self)
+        
+        # Get existing role
+        try:
+            user_role = UserRole.objects.get(
+                user=user,
+                content_type=content_type,
+                object_id=self.pk
+            )
+            
+            if role is None:
+                # Remove role completely
+                user_role.delete()
+            else:
+                # Update existing role
+                user_role.role = role
+                user_role.save()
+                
+        except UserRole.DoesNotExist:
+            if role is not None:
+                # Create new role
+                UserRole.objects.create(
+                    user=user,
+                    content_type=content_type,
+                    object_id=self.pk,
+                    role=role
+                )
     
     def clear_user_role(self, user):
-        raise NotImplementedError("Subclasses must implement clear_user_role()")
+        """Remove a user's role (same as set_user_role(user, None))."""
+        self.set_user_role(user, None)
     
     def get_users_by_role(self, role):
-        raise NotImplementedError("Subclasses must implement get_users_by_role()")
+        """Get all users with a specific role for this object."""
+        from django.contrib.contenttypes.models import ContentType
+        
+        content_type = ContentType.objects.get_for_model(self)
+        user_roles = UserRole.objects.filter(
+            content_type=content_type,
+            object_id=self.pk,
+            role=role
+        ).select_related('user')
+        
+        # Return QuerySet of CustomUser objects
+        return CustomUser.objects.filter(
+            id__in=user_roles.values_list('user_id', flat=True)
+        )
     
+    def get_users_with_roles(self):
+        """Get all users with roles for this object."""
+        from django.contrib.contenttypes.models import ContentType
+        
+        content_type = ContentType.objects.get_for_model(self)
+        return UserRole.objects.filter(
+            content_type=content_type,
+            object_id=self.pk
+        ).select_related('user')
+  
 def set_user_role(obj, user, role, user_role_model=None):
     """
     Assign a role and corresponding permissions to a user for a specific object.

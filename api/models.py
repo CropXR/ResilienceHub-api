@@ -43,7 +43,7 @@ class UserRole(models.Model):
     # Generic relation fields
     content_type = models.ForeignKey('contenttypes.ContentType', on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')  # Add this line
+    content_object = GenericForeignKey('content_type', 'object_id')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -57,11 +57,10 @@ class UserRole(models.Model):
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name} ({self.user.username})"
 
-    def delete(self, *args, **kwargs):
-        """Remove Guardian permissions when UserRole is deleted."""
+    def _remove_permissions(self, role):
+        """Helper method to remove permissions for a specific role."""
         from guardian.shortcuts import remove_perm
         
-        # Define what permissions each role should have
         role_permissions = {
             'guest': ['view'],
             'internal': ['view'],
@@ -71,41 +70,22 @@ class UserRole(models.Model):
             'admin': ['view', 'change', 'delete'],
         }
         
-        if self.role in role_permissions and self.content_object:
+        if role in role_permissions and self.content_object:
             model_name = self.content_type.model
             app_label = self.content_type.app_label
             
-            # Remove all permissions for this role
-            for action in role_permissions[self.role]:
+            for action in role_permissions[role]:
                 perm_code = f'{app_label}.{action}_{model_name}'
                 try:
                     remove_perm(perm_code, self.user, self.content_object)
                     print(f"Removed permission {perm_code} from {self.user.username}")
                 except Exception as e:
                     print(f"Error removing permission {perm_code} from {self.user.username}: {e}")
-        
-        # Call the parent delete method
-        super().delete(*args, **kwargs)
-    
-    def save(self, *args, **kwargs):
-        """Assign Guardian permissions when UserRole is saved."""
+
+    def _assign_permissions(self, role):
+        """Helper method to assign permissions for a specific role."""
         from guardian.shortcuts import assign_perm
         
-        # Check if this is an update (role change) vs new creation
-        if self.pk:
-            # Get the old role to remove its permissions first
-            try:
-                old_role = UserRole.objects.get(pk=self.pk)
-                if old_role.role != self.role:
-                    # Role changed, remove old permissions
-                    old_role.delete()  # This will remove old permissions
-            except UserRole.DoesNotExist:
-                pass
-        
-        # Save the model first
-        super().save(*args, **kwargs)
-        
-        # Define what permissions each role should have
         role_permissions = {
             'guest': ['view'],
             'internal': ['view'],
@@ -115,12 +95,11 @@ class UserRole(models.Model):
             'admin': ['view', 'change', 'delete'],
         }
         
-        if self.role in role_permissions and self.content_object:
+        if role in role_permissions and self.content_object:
             model_name = self.content_type.model
             app_label = self.content_type.app_label
             
-            # Assign permissions for this role
-            for action in role_permissions[self.role]:
+            for action in role_permissions[role]:
                 perm_code = f'{app_label}.{action}_{model_name}'
                 try:
                     assign_perm(perm_code, self.user, self.content_object)
@@ -128,6 +107,33 @@ class UserRole(models.Model):
                 except Exception as e:
                     print(f"Error assigning permission {perm_code} to {self.user.username}: {e}")
 
+    def delete(self, *args, **kwargs):
+        """Remove Guardian permissions when UserRole is deleted."""
+        self._remove_permissions(self.role)
+        super().delete(*args, **kwargs)
+    
+    def save(self, *args, **kwargs):
+        """Assign Guardian permissions when UserRole is saved."""
+        old_role = None
+        
+        # Check if this is an update vs new creation
+        if self.pk:
+            try:
+                old_instance = UserRole.objects.get(pk=self.pk)
+                old_role = old_instance.role
+            except UserRole.DoesNotExist:
+                pass
+        
+        # Save the model first
+        super().save(*args, **kwargs)
+        
+        # If role changed, remove old permissions first
+        if old_role and old_role != self.role:
+            self._remove_permissions(old_role)
+        
+        # Assign new permissions
+        self._assign_permissions(self.role)
+        
 class Institution(models.Model):
     name = models.CharField(max_length=500)
     website = models.URLField(blank=True, null=True, max_length=500)
@@ -277,10 +283,6 @@ class Study(AccessionCodeModel, GuardianMixin):
             ('manage_permissions_study', 'Can manage permissions for study'),
         ]        
         ordering = ['id']
-
-    def has_owners(self):
-        """Check if this study has at least one owner."""
-        return self.get_users_by_role('owner').exists()
             
     def _check_security_level_read(self, user):
         """

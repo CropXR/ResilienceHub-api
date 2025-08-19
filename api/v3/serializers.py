@@ -15,54 +15,26 @@ from drf_spectacular.utils import extend_schema_serializer, extend_schema_field
 
 @extend_schema_serializer(component_name="UserV3")
 class UserSerializer(serializers.ModelSerializer):
-    display_name = serializers.SerializerMethodField()
-
-    def get_display_name(self, obj):
-        full_name = obj.get_full_name() or obj.username
-        return f"{full_name} ({obj.email})"
-
     class Meta:
         model = User
-        fields = ['display_name']
+        fields = ['first_name', 'last_name', 'email']
+
 
 @extend_schema_serializer(component_name="InvestigationV3")
 class InvestigationSerializer(serializers.ModelSerializer):
     studies = serializers.SerializerMethodField()
-    owners = serializers.SerializerMethodField()
-    contributors = serializers.SerializerMethodField()
-    readers = serializers.SerializerMethodField()
-
-    # Add this if it's a many-to-many or foreign key relationship
-    participating_institutions = serializers.PrimaryKeyRelatedField(
-        queryset=Institution.objects.all(),  # Replace with your actual model
-        many=True,  # Set to False if it's a ForeignKey rather than ManyToMany
-        required=False
-    )
-
-    start_date = serializers.DateField(required=False)
-    end_date = serializers.DateField(required=False)
-    submission_date = serializers.DateField(required=False)
-    public_release_date = serializers.DateField(required=False)
+    principal_investigator = UserSerializer(read_only=True)
     
     class Meta:
         model = Investigation
         fields = [
             'accession_code',
-            'security_level',
-            'title', 
-            'description', 
-            'principal_investigator_name',
-            'principal_investigator_email',
-            'start_date',
-            'end_date',
-            'submission_date',
-            'public_release_date', 
-            'studies',
-            'owners',
-            'contributors',
-            'readers',
-            'participating_institutions',
             'work_package',
+            'title', 
+            'security_level',
+            'description', 
+            'principal_investigator',
+            'studies',
         ]
         read_only_fields = ['accession_code', 'created_at', 'updated_at']
 
@@ -80,53 +52,16 @@ class InvestigationSerializer(serializers.ModelSerializer):
 
         return filtered_studies
     
-    @extend_schema_field({'type': 'array', 'items': {'type': 'string'}})
-    def get_owners(self, obj) -> List[str]:
-        """Get owners of the investigation"""
-        owners = obj.get_users_by_role('owner')
-        return [
-            f"{user.get_full_name() or user.username} ({user.email})"
-            for user in owners
-        ]
-    
-    @extend_schema_field({'type': 'array', 'items': {'type': 'string'}})
-    def get_contributors(self, obj) -> List[str]:
-        """Get contributors of the investigation"""
-        contributors = obj.get_users_by_role('contributor')
-        return [
-            f"{user.get_full_name() or user.username} ({user.email})"
-            for user in contributors
-        ]
-    
-    @extend_schema_field({'type': 'array', 'items': {'type': 'string'}})
-    def get_readers(self, obj) -> List[str]:
-        """Get readers of the investigation"""
-        readers = obj.get_users_by_role('viewer')
-        return [
-            f"{user.get_full_name() or user.username} ({user.email})"
-            for user in readers
-        ]
-
 @extend_schema_serializer(component_name="StudyV3")
 class StudySerializer(serializers.ModelSerializer):
-    assays = serializers.SerializerMethodField()
-    owners = serializers.SerializerMethodField()
-    contributors = serializers.SerializerMethodField()
-    readers = serializers.SerializerMethodField()
     
     # Investigation fields that should be inherited if not set on study
     investigation_title = serializers.SerializerMethodField()
     investigation_description = serializers.SerializerMethodField()
     investigation_accession_code = serializers.SerializerMethodField()
     investigation_work_package = serializers.SerializerMethodField()
-    investigation_notes = serializers.SerializerMethodField()
-    investigation_participating_institutions = serializers.SerializerMethodField()
-    effective_principal_investigator_name = serializers.SerializerMethodField()
-    effective_principal_investigator_email = serializers.SerializerMethodField()
-    effective_start_date = serializers.SerializerMethodField()
-    effective_end_date = serializers.SerializerMethodField()
-    effective_submission_date = serializers.SerializerMethodField()
-    effective_public_release_date = serializers.SerializerMethodField()
+    principal_investigator = serializers.SerializerMethodField()
+    data_administrator = serializers.SerializerMethodField()
         
     investigation = serializers.PrimaryKeyRelatedField(
         queryset=Investigation.objects.all(),
@@ -196,29 +131,12 @@ class StudySerializer(serializers.ModelSerializer):
             'investigation_description', 
             'investigation_accession_code',
             'investigation_work_package',
-            'investigation_notes',
-            'investigation_participating_institutions',
+            'principal_investigator',
+            'data_administrator',
             'title',
             'slug',
             'description',
-            'principal_investigator_name',
-            'principal_investigator_email',
-            'effective_principal_investigator_name',
-            'effective_principal_investigator_email',
-            'start_date',
-            'end_date',
-            'effective_start_date',
-            'effective_end_date',
-            'submission_date',
-            'effective_submission_date',
-            'public_release_date',
-            'effective_public_release_date',
-            'assays',
             'security_level',
-            'owners',
-            'contributors',
-            'readers',
-            'folder_name'
         ]
         read_only_fields = ['accession_code', 'investigation']
 
@@ -242,6 +160,30 @@ class StudySerializer(serializers.ModelSerializer):
         """Get the parent investigation work package"""
         return obj.investigation.work_package if obj.investigation else ""
     
+    @extend_schema_field({'type': 'object', 'properties': {'first_name': {'type': 'string'}, 'last_name': {'type': 'string'}, 'email': {'type': 'string'}}})
+    def get_principal_investigator(self, obj) -> dict:
+        """Get principal investigator from parent investigation"""
+        if obj.investigation and obj.investigation.principal_investigator:
+            user = obj.investigation.principal_investigator
+            return {
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email': user.email
+            }
+        return None
+    
+    @extend_schema_field({'type': 'object', 'properties': {'first_name': {'type': 'string'}, 'last_name': {'type': 'string'}, 'email': {'type': 'string'}}})
+    def get_data_administrator(self, obj) -> dict:
+        """Get data administrator from parent investigation"""
+        if obj.investigation and hasattr(obj.investigation, 'data_administrator') and obj.investigation.data_administrator:
+            user = obj.investigation.data_administrator
+            return {
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email': user.email
+            }
+        return None
+    
     @extend_schema_field({'type': 'string'})
     def get_investigation_notes(self, obj) -> str:
         """Get the parent investigation notes"""
@@ -262,57 +204,6 @@ class StudySerializer(serializers.ModelSerializer):
             for institution in obj.investigation.participating_institutions.all()
         ]
 
-    @extend_schema_field({'type': 'string'})
-    def get_effective_principal_investigator_name(self, obj) -> str:
-        """Get PI name from study, fallback to investigation if not set"""
-        if obj.principal_investigator_name:
-            return obj.principal_investigator_name
-        return obj.investigation.principal_investigator_name if obj.investigation else ""
-    
-    @extend_schema_field({'type': 'string'})
-    def get_effective_principal_investigator_email(self, obj) -> str:
-        """Get PI email from study, fallback to investigation if not set"""
-        if obj.principal_investigator_email:
-            return obj.principal_investigator_email
-        return obj.investigation.principal_investigator_email if obj.investigation else ""
-    
-    @extend_schema_field({'type': 'string', 'format': 'date'})
-    def get_effective_start_date(self, obj) -> str:
-        """Get start date from study, fallback to investigation if not set"""
-        if obj.start_date:
-            return obj.start_date
-        return obj.investigation.start_date if obj.investigation else None
-    
-    @extend_schema_field({'type': 'string', 'format': 'date'})
-    def get_effective_end_date(self, obj) -> str:
-        """Get end date from study, fallback to investigation if not set"""
-        if obj.end_date:
-            return obj.end_date
-        return obj.investigation.end_date if obj.investigation else None
-    
-    @extend_schema_field({'type': 'string', 'format': 'date'})
-    def get_effective_submission_date(self, obj) -> str:
-        """Get submission date from study, fallback to investigation if not set"""
-        if obj.submission_date:
-            return obj.submission_date
-        return obj.investigation.submission_date if obj.investigation else None
-    
-    @extend_schema_field({'type': 'string', 'format': 'date'})
-    def get_effective_public_release_date(self, obj) -> str:
-        """Get public release date from study, fallback to investigation if not set"""
-        if obj.public_release_date:
-            return obj.public_release_date
-        return obj.investigation.public_release_date if obj.investigation else None
-
-    @extend_schema_field({'type': 'array', 'items': {'type': 'array', 'items': {'type': 'string'}}})
-    def get_assays(self, obj) -> List[List[str]]:
-        """Get assays filtered by user permissions"""
-        user = self.context['request'].user
-        return [
-            [assay.accession_code, assay.measurement_type]
-            for assay in obj.assays.all() if assay.can_read(user)
-        ]
-    
     @extend_schema_field({'type': 'array', 'items': {'type': 'string'}})
     def get_owners(self, obj) -> List[str]:
         """Get owners of the study"""
@@ -320,22 +211,4 @@ class StudySerializer(serializers.ModelSerializer):
         return [
             "{} ({})".format(user.get_full_name() or user.username, user.email)
             for user in owners
-        ]
-    
-    @extend_schema_field({'type': 'array', 'items': {'type': 'string'}})
-    def get_contributors(self, obj) -> List[str]:
-        """Get contributors of the study"""
-        contributors = obj.get_users_by_role('contributor')
-        return [
-            "{} ({})".format(user.get_full_name() or user.username, user.email)
-            for user in contributors
-        ]
-    
-    @extend_schema_field({'type': 'array', 'items': {'type': 'string'}})
-    def get_readers(self, obj) -> List[str]:
-        """Get readers of the study"""
-        readers = obj.get_users_by_role('authorized')
-        return [
-            "{} ({})".format(user.get_full_name() or user.username, user.email)
-            for user in readers
         ]

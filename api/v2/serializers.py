@@ -51,8 +51,6 @@ class InvestigationSerializer(serializers.ModelSerializer):
             'security_level',
             'title', 
             'description', 
-            'principal_investigator_name',
-            'principal_investigator_email',
             'start_date',
             'end_date',
             'submission_date',
