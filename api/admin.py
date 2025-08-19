@@ -3,11 +3,11 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django import forms
 from guardian.admin import GuardedModelAdmin
-from guardian.shortcuts import get_users_with_perms, get_objects_for_user  # Added missing import
+from guardian.shortcuts import get_users_with_perms, get_objects_for_user
 
 from .models import (
-    Investigation, Study, Assay, 
-    UserRole, Institution, Sample, 
+    Investigation, Study, 
+    UserRole, Institution, 
     InvestigationInstitution,
     CustomUser
 )
@@ -183,19 +183,6 @@ class InvestigationAdmin(CustomGuardedModelAdmin):
             # Assign owner role to the current user
             obj.set_user_role(request.user, 'owner')
 
-class AssayInline(admin.TabularInline):
-    model = Assay
-    extra = 0
-    readonly_fields = ['accession_code_link']  # Fixed trailing comma
-    fields = ['accession_code_link', 'title']
-
-    def accession_code_link(self, obj):
-        """Create a clickable link to the Assay detail page."""
-        url = reverse('admin:api_assay_change', args=[obj.pk])
-        return format_html('<a href="{}">{}</a>', url, obj.accession_code)
-
-    accession_code_link.short_description = 'Accession Code'
-
 @admin.register(Study)
 class StudyAdmin(CustomGuardedModelAdmin):
     list_display = ('id', 'accession_code', 'investigation_link', 'work_package', 
@@ -241,7 +228,6 @@ class StudyAdmin(CustomGuardedModelAdmin):
     
     user_count.short_description = "Users"
     
-    #inlines = [UserRoleInline, AssayInline]
     inlines = [UserRoleInline]
     
     
@@ -254,41 +240,6 @@ class StudyAdmin(CustomGuardedModelAdmin):
             # Assign owner role to the current user
             obj.set_user_role(request.user, 'owner')
 
-#@admin.register(Assay)  # Commented out admin registration
-class AssayAdmin(CustomGuardedModelAdmin):
-    list_display = ('id', 'accession_code', 'study_link', 'investigation_link', 'title', 
-                    'measurement_type')
-    list_display_links = ('accession_code',)
-    search_fields = ('accession_code', 'description', 'study__accession_code', 'study__title')
-    list_filter = ('study__investigation', 'study', 'measurement_type')  # Fixed trailing comma
-    ordering = ('id',)
-    readonly_fields = ('id', 'accession_code', 'created_at', 'updated_at', 'study')
-    fields = ('study', 
-              'accession_code', 
-              'title', 
-              'description',             
-              'measurement_type', 
-              'created_at', 
-              'updated_at'
-             )
-    inlines = [UserRoleInline]
-
-    def study_link(self, obj):
-        """Create a clickable link to the Study detail page."""
-        url = reverse('admin:api_study_change', args=[obj.study.id])
-        return format_html('<a href="{}">{}</a>', url, obj.study.accession_code)
-    
-    study_link.short_description = "Study"
-
-    def investigation_link(self, obj):
-        """Create a clickable link to the Investigation detail page."""
-        if obj.study and obj.study.investigation:
-            url = reverse('admin:api_investigation_change', args=[obj.study.investigation.id])
-            return format_html('<a href="{}">{}</a>', url, obj.study.investigation.accession_code)
-        return "-"
-
-    investigation_link.short_description = "Investigation"
-
 # @admin.register(UserRole)  # Commented out admin registration
 class UserRoleAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'role', 'content_type', 'object_id', 'created_at')
@@ -300,14 +251,6 @@ class UserRoleAdmin(admin.ModelAdmin):
 class InstitutionAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'address_street', 'address_house_number', 'address_addition', 'address_postcode', 'address_city', 'address_country']
     search_fields = ['name']
-
-@admin.register(Sample)  # Commented out admin registration
-class SampleAdmin(CustomGuardedModelAdmin):
-    list_display = ['accession_code', 'id', 'name', 'security_level']
-    search_fields = ['accession_code', 'name']
-    readonly_fields = ['accession_code']
-    fields = ['accession_code', 'name', 'sample_type', 'security_level']
-    inlines = [UserRoleInline]
 
 #@admin.register(InvestigationInstitution)  # Commented out admin registration
 class InvestigationInstitutionAdmin(admin.ModelAdmin):

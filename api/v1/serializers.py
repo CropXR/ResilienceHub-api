@@ -4,11 +4,9 @@ from django.contrib.auth.models import User
 from ..models import (
     Investigation, 
     Study, 
-    Assay, 
     SecurityLevel, 
     UserRole, 
     Institution,
-    Sample
 )
 from typing import List, Dict, Any
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
@@ -177,31 +175,3 @@ class StudySerializer(serializers.ModelSerializer):
             f"{user.get_full_name() or user.username} ({user.email})"
             for user in readers
         ]
-
-class AssaySerializer(serializers.ModelSerializer):
-    study_accession = serializers.CharField(source='study.accession_code', read_only=True)
-    investigation_accession = serializers.CharField(source='study.investigation.accession_code', read_only=True)
-    
-    class Meta:
-        model = Assay
-        fields = [
-            'accession_code', 
-            'study_accession',
-            'title',
-            'investigation_accession',
-            'measurement_type', 
-            'description', 
-            'created_at', 
-            'updated_at'
-        ]
-        read_only_fields = ['study_accession', 'accession_code', 'created_at', 'updated_at']
-        
-class SampleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Sample
-        fields = [
-            'accession_code', 
-            'sample_type'
-        ]
-        read_only_fields = ['accession_code']
-        

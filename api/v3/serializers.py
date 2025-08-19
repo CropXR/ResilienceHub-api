@@ -7,10 +7,8 @@ from django.contrib.auth.models import User
 from ..models import (
     Investigation, 
     Study, 
-    Assay, 
     SecurityLevel, 
     Institution,
-    Sample
 )
 from drf_spectacular.utils import extend_schema_serializer, extend_schema_field
 
@@ -341,98 +339,3 @@ class StudySerializer(serializers.ModelSerializer):
             "{} ({})".format(user.get_full_name() or user.username, user.email)
             for user in readers
         ]
-             
-@extend_schema_serializer(component_name="AssayV3")
-class AssaySerializer(serializers.ModelSerializer):
-    study = serializers.PrimaryKeyRelatedField(
-        queryset=Study.objects.all(),
-        required=False,
-        write_only=True
-    )
-        
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        user = self.context.get('request').user if self.context.get('request') else None
-        
-        if user:
-            # Start with all studies
-            accessible_studies = Study.objects.all()
-            
-            # For confidential studies, filter by read access
-            if not user.is_superuser:  # Skip filtering for superusers
-                confidential_ids = Study.objects.filter(
-                    security_level=SecurityLevel.CONFIDENTIAL
-                ).values_list('id', flat=True)
-                
-                # Exclude confidential studies that the user can't read
-                confidential_without_access = []
-                for study_id in confidential_ids:
-                    study = Study.objects.get(id=study_id)
-                    if not study.can_read(user):
-                        confidential_without_access.append(study_id)
-                
-                # Exclude the confidential studies without access
-                accessible_studies = accessible_studies.exclude(
-                    id__in=confidential_without_access
-                )
-            
-            self.fields['study'].queryset = accessible_studies
-
-    def create(self, validated_data):
-        # If study is not in validated_data, try to get it from context
-        if 'study' not in validated_data:
-            request = self.context.get('request')
-            if request:
-                # Check for study in nested route
-                study_accession = request.parser_context['kwargs'].get('study_accession_code')
-                investigation_accession = request.parser_context['kwargs'].get('investigation_accession_code')
-                
-                if study_accession:
-                    try:
-                        study = Study.objects.get(accession_code=study_accession)
-                        validated_data['study'] = study
-                    except Study.DoesNotExist:
-                        raise serializers.ValidationError({"study": f"Study with accession code {study_accession} does not exist"})
-                
-                elif investigation_accession:
-                    # If no specific study, but investigation is provided
-                    try:
-                        investigation = Investigation.objects.get(accession_code=investigation_accession)
-                        # You might want to add logic to select a specific study or create one
-                        raise serializers.ValidationError({"study": "A specific study must be provided"})
-                    except Investigation.DoesNotExist:
-                        raise serializers.ValidationError({"investigation": "Invalid investigation specified."})
-        
-        # If still no study, raise an error
-        if 'study' not in validated_data:
-            raise serializers.ValidationError({"study": "This field is required."})
-        
-        # Set the current user as owner when creating
-        assay = super().create(validated_data)
-        assay.set_user_role(self.context['request'].user, 'owner')
-        
-        return assay
-
-    class Meta:
-        model = Assay
-        fields = [
-            'accession_code',
-            'study',
-            'title',
-            'description',
-            'measurement_type',
-            'technology_platform',
-            # Add other fields as needed
-        ]
-        read_only_fields = ['accession_code', 'study']
-    
-@extend_schema_serializer(component_name="SampleV3")
-class SampleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Sample
-        fields = [
-            'accession_code', 
-            'sample_type'
-        ]
-        read_only_fields = ['accession_code']

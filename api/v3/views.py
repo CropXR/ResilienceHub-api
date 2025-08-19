@@ -15,15 +15,12 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
 from ..models import (
-    Investigation, Study, Assay, 
+    Investigation, Study,
     SecurityLevel,
-    Sample
 )
 from .serializers import (
     InvestigationSerializer, 
     StudySerializer, 
-    AssaySerializer,
-    SampleSerializer
 )
 from ..permissions import GuardianPermission, IsOwnerOrAdmin
 from ..permissions import (
@@ -266,143 +263,6 @@ class StudyViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(request, instance)
         return super().update(request, *args, **kwargs)
 
-class AssayViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, GuardianPermission]
-    serializer_class = AssaySerializer
-    lookup_field = 'accession_code'
-    lookup_value_regex = 'CXRA[0-9]+'
-
-    def get_queryset(self):
-        queryset = Assay.objects.all()
-        
-        # Filter by investigation
-        investigation_id = self.request.query_params.get('investigation', None)
-        investigation_accession = self.request.query_params.get('investigation_accession', None)
-        
-        # Filter by study
-        study_id = self.request.query_params.get('study', None)
-        study_accession = self.request.query_params.get('study_accession', None)
-        
-        if investigation_id:
-            queryset = queryset.filter(study__investigation_id=investigation_id)
-        
-        if investigation_accession:
-            queryset = queryset.filter(study__investigation__accession_code=investigation_accession)
-        
-        if study_id:
-            queryset = queryset.filter(study_id=study_id)
-        
-        if study_accession:
-            queryset = queryset.filter(study__accession_code=study_accession)
-        
-        # Additional optional filters
-        title = self.request.query_params.get('title', None)
-        description = self.request.query_params.get('description', None)
-        measurement_type = self.request.query_params.get('measurement_type', None)
-        technology_platform = self.request.query_params.get('technology_platform', None)
-        
-        if title:
-            queryset = queryset.filter(title__icontains=title)
-        
-        if description:
-            queryset = queryset.filter(description__icontains=description)
-        
-        if measurement_type:
-            queryset = queryset.filter(measurement_type=measurement_type)
-        
-        if technology_platform:
-            queryset = queryset.filter(technology_platform=technology_platform)
-
-        # Permission filtering using guardian
-        user = self.request.user
-        
-        # Superuser sees everything
-        if user.is_superuser:
-            return queryset
-
-        # Prefetch studies for permission checking
-        studies = set(assay.study for assay in queryset)
-        
-        # Use guardian's ObjectPermissionChecker for efficient permission checks
-        checker = ObjectPermissionChecker(user)
-        checker.prefetch_perms(studies)
-        
-        # Filter based on study permissions
-        visible_ids = []
-        for assay in queryset:
-            study = assay.study
-            
-            # Public studies' assays are visible to all
-            if study.security_level == SecurityLevel.PUBLIC:
-                visible_ids.append(assay.id)
-                continue
-                
-            # Check study permissions
-            if checker.has_perm('api.view_study', study):
-                # For confidential studies, only show if explicitly allowed
-                if study.security_level != SecurityLevel.CONFIDENTIAL or checker.has_perm('api.view_study', study):
-                    visible_ids.append(assay.id)
-                    continue
-                    
-            # Check investigation-level access
-            if study.investigation and checker.has_perm('api.view_investigation', study.investigation):
-                # Internal users can see internal studies' assays
-                if study.security_level == SecurityLevel.INTERNAL and user.is_staff:
-                    visible_ids.append(assay.id)
-                    continue
-                
-                # Investigation-level permissions for contributors and owners
-                if checker.has_perm('api.change_investigation', study.investigation):
-                    visible_ids.append(assay.id)
-                    continue
-
-        return queryset.filter(id__in=visible_ids).distinct()
-
-    def get_object(self):
-        try:
-            # First check investigation and study if in nested routes
-            investigation_accession = self.kwargs.get('investigation_accession_code')
-            study_accession = self.kwargs.get('study_accession_code')
-            
-            if investigation_accession:
-                try:
-                    investigation = Investigation.objects.get(accession_code=investigation_accession)
-                except Investigation.DoesNotExist:
-                    raise Http404("Investigation not found")
-            
-            if study_accession:
-                try:
-                    study = Study.objects.get(accession_code=study_accession)
-                except Study.DoesNotExist:
-                    raise Http404("Study not found")
-
-            # Then try to get the assay
-            assay = Assay.objects.get(
-                accession_code=self.kwargs[self.lookup_field]
-            )
-            
-            # Check investigation and study if in nested routes
-            if investigation_accession:
-                if assay.study.investigation.accession_code != investigation_accession:
-                    raise Http404("Assay does not belong to the specified investigation")
-            
-            if study_accession:
-                if assay.study.accession_code != study_accession:
-                    raise Http404("Assay does not belong to the specified study")
-            
-            # Check permissions using guardian for the parent study
-            if not self.request.user.has_perm('api.view_study', assay.study):
-                # Check investigation-level permission as fallback
-                if not (assay.study.investigation and 
-                        self.request.user.has_perm('api.view_investigation', assay.study.investigation)):
-                    raise PermissionDenied("You do not have permission to access this assay")
-                
-            return assay
-            
-        except Assay.DoesNotExist:
-            raise Http404("Assay not found")
-
-
 class UserRoleManagementViewSet(viewsets.ViewSet):
     permission_classes = [IsOwnerOrAdmin]
     
@@ -643,54 +503,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
                 {'error': 'Internal server error'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-            
-class SampleViewSet(viewsets.ModelViewSet):
-    queryset = Sample.objects.all()
-    serializer_class = SampleSerializer
-    permission_classes = [IsAuthenticated, GuardianPermission]
-    lookup_field = 'accession_code'
-    lookup_value_regex = 'CXRX[0-9]+'
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        user = self.request.user
-        
-        # Superuser sees everything
-        if user.is_superuser:
-            return queryset
-            
-        # Use guardian's ObjectPermissionChecker for efficient permission checks
-        checker = ObjectPermissionChecker(user)
-        checker.prefetch_perms(queryset)
-        
-        # Filter based on permissions and visibility
-        visible_ids = []
-        for sample in queryset:
-            # Public samples are visible to all
-            if sample.security_level == SecurityLevel.PUBLIC:
-                visible_ids.append(sample.id)
-                continue
-                
-            # Skip confidential in listings unless explicitly permitted
-            if sample.security_level == SecurityLevel.CONFIDENTIAL:
-                if checker.has_perm('api.view_sample', sample):
-                    visible_ids.append(sample.id)
-                continue
-                
-            # Check internal access
-            if sample.security_level == SecurityLevel.INTERNAL:
-                if user.is_staff or checker.has_perm('api.view_sample', sample):
-                    visible_ids.append(sample.id)
-                continue
-                
-            # Check restricted access
-            if sample.security_level == SecurityLevel.RESTRICTED:
-                if checker.has_perm('api.view_sample', sample):
-                    visible_ids.append(sample.id)
-                continue
-                
-        return queryset.filter(id__in=visible_ids)
-    
+             
     
 class ISAExportView(APIView):
     """
@@ -839,12 +652,6 @@ class ISAExportView(APIView):
             "study.json": self.generate_study_json(investigation, study)
         }
         
-        # Add assays to the structure
-        assays = Assay.objects.filter(study=study)
-        for assay in assays:
-            a_dir_name = f"a_{investigation.accession_code}-{study.accession_code}-{assay.accession_code}"
-            study_structure[a_dir_name] = self.generate_assay_structure(investigation, study, assay)
-        
         return study_structure
     
     def generate_study_json(self, investigation, study):
@@ -860,38 +667,5 @@ class ISAExportView(APIView):
         }
         
         return json.dumps(study_data, indent=2)
-    
-    def generate_assay_structure(self, investigation, study, assay):
-        """Generate the structure for an assay directory."""
-        assay_structure = {
-            "_readme": f"# Assay: {assay.accession_code}\n\n{assay.title}\n\n**DO NOT MODIFY THIS FILE MANUALLY**",
-            "assay.json": self.generate_assay_json(investigation, study, assay)
-        }
-        
-        # Add minimal directory structures for data organization
-        assay_structure["raw-data"] = {
-            "_readme": "# Raw Data\n\nPlace raw data files here.\n\n**DO NOT MODIFY THIS FILE MANUALLY**"
-        }
-        
-        assay_structure["processed"] = {
-            "_readme": "# Processed Data\n\nPlace processed data files here.\n\n**DO NOT MODIFY THIS FILE MANUALLY**"
-        }
-        
-        return assay_structure
-    
-    def generate_assay_json(self, investigation, study, assay):
-        """Generate the assay.json content with actual assay data."""
-        a_dir_name = f"a_{investigation.accession_code}-{study.accession_code}-{assay.accession_code}"
-        
-        assay_data = {
-            "assay_id": assay.accession_code,
-            "assay_title": assay.title,
-            "assay_measurement_type": assay.measurement_type,
-            "assay_technology_platform": assay.technology_platform,
-            "assay_description": assay.description
-        }
-        
-        return json.dumps(assay_data, indent=2)
-    
-    
+
     
