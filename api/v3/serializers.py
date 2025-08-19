@@ -57,7 +57,6 @@ class StudySerializer(serializers.ModelSerializer):
     
     # Investigation fields that should be inherited if not set on study
     investigation_title = serializers.SerializerMethodField()
-    investigation_description = serializers.SerializerMethodField()
     investigation_accession_code = serializers.SerializerMethodField()
     investigation_work_package = serializers.SerializerMethodField()
     principal_investigator = serializers.SerializerMethodField()
@@ -126,9 +125,9 @@ class StudySerializer(serializers.ModelSerializer):
         model = Study
         fields = [
             'accession_code',
+            'security_level',
             'investigation',
             'investigation_title',
-            'investigation_description', 
             'investigation_accession_code',
             'investigation_work_package',
             'principal_investigator',
@@ -136,7 +135,6 @@ class StudySerializer(serializers.ModelSerializer):
             'title',
             'slug',
             'description',
-            'security_level',
         ]
         read_only_fields = ['accession_code', 'investigation']
 
