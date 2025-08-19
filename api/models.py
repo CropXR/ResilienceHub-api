@@ -163,8 +163,6 @@ class Investigation(AccessionCodeModel, GuardianMixin):
     end_date = models.DateField(blank=True, null=True)
     submission_date = models.DateField(blank=True, null=True)
     public_release_date = models.DateField(blank=True, null=True)
-    principal_investigator_name = models.CharField(max_length=255, null=True, blank=True)
-    principal_investigator_email = models.EmailField(max_length=255, null=True, blank=True)
     
     security_level = models.CharField(
         max_length=20,
@@ -244,17 +242,12 @@ class Study(AccessionCodeModel, GuardianMixin):
         blank=True,
         help_text="Dataset administrator for this study"
     )
-    
-    principal_investigator_name = models.CharField(max_length=255, null=True, blank=True)
-    principal_investigator_email = models.EmailField(max_length=255, null=True, blank=True)
-    
+
     def principal_investigator(self):
         """
         Return the principal investigator for this study.
         """
         return self.investigation.principal_investigator if self.investigation else None
-    
-    
     
     security_level = models.CharField(
         max_length=20,

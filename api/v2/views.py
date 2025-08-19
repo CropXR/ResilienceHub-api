@@ -503,7 +503,7 @@ class UserRoleManagementViewSet(viewsets.ViewSet):
                 {'error': 'Internal server error'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+  
 class ISAExportView(APIView):
     """
     View to export the ISA structure as a JSON representation that can be
