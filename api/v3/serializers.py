@@ -61,7 +61,7 @@ class StudySerializer(serializers.ModelSerializer):
     investigation_accession_code = serializers.SerializerMethodField()
     investigation_work_package = serializers.SerializerMethodField()
     principal_investigator = serializers.SerializerMethodField()
-    data_administrator = serializers.SerializerMethodField()
+    dataset_administrator = serializers.SerializerMethodField()
         
     investigation = serializers.PrimaryKeyRelatedField(
         queryset=Investigation.objects.all(),
@@ -132,7 +132,7 @@ class StudySerializer(serializers.ModelSerializer):
             'investigation_accession_code',
             'investigation_work_package',
             'principal_investigator',
-            'data_administrator',
+            'dataset_administrator',
             'title',
             'slug',
             'description',
@@ -173,10 +173,10 @@ class StudySerializer(serializers.ModelSerializer):
         return None
     
     @extend_schema_field({'type': 'object', 'properties': {'first_name': {'type': 'string'}, 'last_name': {'type': 'string'}, 'email': {'type': 'string'}}})
-    def get_data_administrator(self, obj) -> dict:
+    def get_dataset_administrator(self, obj) -> dict:
         """Get data administrator from parent investigation"""
-        if obj.investigation and hasattr(obj.investigation, 'data_administrator') and obj.investigation.data_administrator:
-            user = obj.investigation.data_administrator
+        if obj.investigation and hasattr(obj.investigation, 'dataset_administrator') and obj.investigation.dataset_administrator:
+            user = obj.investigation.dataset_administrator
             return {
                 'first_name': user.first_name,
                 'last_name': user.last_name,
