@@ -161,8 +161,6 @@ class InvestigationAdmin(CustomGuardedModelAdmin):
         'public_release_date',
         'created_at',
         'updated_at',
-        'principal_investigator_name',
-        'principal_investigator_email',
         'principal_investigator',
         'notes'
     )   
@@ -191,7 +189,7 @@ class StudyAdmin(CustomGuardedModelAdmin):
     search_fields = ('accession_code', 'title', 'description', 'investigation__accession_code')
     list_filter = ('investigation', 'submission_date', 'security_level')
     ordering = ('id',)
-    readonly_fields = ('id', 'accession_code', 'work_package', 'accession_code', 'created_at', 'updated_at', 'folder_name', 'principal_investigator')
+    readonly_fields = ('id', 'accession_code', 'work_package', 'accession_code', 'created_at', 'updated_at', 'folder_name', 'principal_investigator', 'users_with_roles_display')
     
     fields = (
         'accession_code',       
@@ -201,15 +199,14 @@ class StudyAdmin(CustomGuardedModelAdmin):
         'security_level', 
         'slug', 
         'description',
-        'principal_investigator_name',
-        'principal_investigator_email',
         'principal_investigator',
         'dataset_administrator',
         'notes', 
         'start_date', 
         'end_date', 
         'submission_date', 
-        'folder_name'          
+        'folder_name',
+        'users_with_roles_display'
     )
     
     
@@ -228,8 +225,44 @@ class StudyAdmin(CustomGuardedModelAdmin):
     
     user_count.short_description = "Users"
     
-    inlines = [UserRoleInline]
+    def users_with_roles_display(self, obj):
+        """Display all users with their roles for this study."""
+        from django.contrib.contenttypes.models import ContentType
+        
+        # Get all UserRole objects for this study
+        content_type = ContentType.objects.get_for_model(obj)
+        user_roles = UserRole.objects.filter(
+            content_type=content_type,
+            object_id=obj.pk
+        ).select_related('user').order_by('role', 'user__username')
+        
+        if not user_roles:
+            return "No users assigned"
+        
+        # Create HTML table
+        html = '<table style="width: 100%; border-collapse: collapse;">'
+        html += '<tr style="background-color: #f8f9fa; font-weight: bold;">'
+        html += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">User</th>'
+        html += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Role</th>'
+        html += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Email</th>'
+        html += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Added</th>'
+        html += '</tr>'
+        
+        for user_role in user_roles:
+            html += '<tr>'
+            html += f'<td style="border: 1px solid #ddd; padding: 8px;">{user_role.user.get_full_name() or user_role.user.username}</td>'
+            html += f'<td style="border: 1px solid #ddd; padding: 8px;"><span style="background-color: #e3f2fd; padding: 2px 6px; border-radius: 3px; font-size: 0.9em;">{user_role.get_role_display()}</span></td>'
+            html += f'<td style="border: 1px solid #ddd; padding: 8px;">{user_role.user.email}</td>'
+            html += f'<td style="border: 1px solid #ddd; padding: 8px;">{user_role.created_at.strftime("%Y-%m-%d %H:%M")}</td>'
+            html += '</tr>'
+        
+        html += '</table>'
+        return format_html(html)
     
+    users_with_roles_display.short_description = "Users with Roles"
+    
+    
+    inlines = [UserRoleInline]
     
     def save_model(self, request, obj, form, change):
         """When creating a new object, assign owner permissions to current user."""
