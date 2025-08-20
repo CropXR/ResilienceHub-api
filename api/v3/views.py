@@ -7,12 +7,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.http import Http404
 from django.db import models 
+from django.http import HttpResponse
 from rest_framework.exceptions import PermissionDenied
 from guardian.shortcuts import assign_perm, remove_perm, get_perms, get_users_with_perms
 from guardian.core import ObjectPermissionChecker
 import json
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from ..models import (
     Investigation, Study,
@@ -262,6 +265,68 @@ class StudyViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         self.check_object_permissions(request, instance)
         return super().update(request, *args, **kwargs)
+
+    @action(detail=False, methods=['get'], url_path='markdown-export')
+    def markdown_export(self, request):
+        """
+        Generate a markdown table with study data for accessible studies.
+        Only includes public, internal, and restricted studies (excludes confidential).
+        Returns: Study Acc, Work Package, Folder Name, Data Sensitivity, Dataset Administrator
+        """
+        # Get all studies that the user has permission to view
+        # Only include public, internal, and restricted studies (exclude confidential)
+        accessible_studies = []
+        all_studies = self.get_queryset().exclude(security_level='confidential')
+        
+        for study in all_studies:
+            # Check if user has read access to this study
+            if study._check_security_level_read(request.user):
+                accessible_studies.append(study)
+        
+        # Build markdown table
+        markdown_lines = [
+            "| Study Acc | Work Package | Folder Name | Data Sensitivity | Dataset Administrator |",
+            "|-----------|--------------|-------------|------------------|-----------------------|"
+        ]
+        
+        for study in accessible_studies:
+            # Get study accession code
+            study_acc = study.accession_code
+            
+            # Get work package from investigation
+            work_package = study.work_package() or "Not specified"
+            
+            # Get folder name
+            folder_name = study.folder_name()
+            
+            # Get data sensitivity level
+            data_sensitivity = study.get_security_level_display()
+            
+            # Format dataset administrator
+            if study.dataset_administrator:
+                admin_name = str(study.dataset_administrator)
+                admin_email = study.dataset_administrator.email
+                if admin_email:
+                    dataset_admin = f"[{admin_name}](mailto:{admin_email})"
+                else:
+                    dataset_admin = admin_name
+            else:
+                dataset_admin = "Not assigned"
+            
+            # Create table row
+            row = f"| {study_acc} | {work_package} | {folder_name} | {data_sensitivity} | {dataset_admin} |"
+            markdown_lines.append(row)
+        
+        # Join all lines
+        markdown_content = "\n".join(markdown_lines)
+        
+        # Return as plain text response
+        return HttpResponse(
+            markdown_content, 
+            content_type='text/plain; charset=utf-8'
+        )
+
+
 
 class UserRoleManagementViewSet(viewsets.ViewSet):
     permission_classes = [IsOwnerOrAdmin]

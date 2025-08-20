@@ -273,9 +273,9 @@ class Study(AccessionCodeModel, GuardianMixin):
     work_package.admin_order_field = 'investigation__work_package'
 
     def folder_name(self):
-        folder_name = f"i_{self.investigation.work_package}_{self.investigation.accession_code}/s_{self.investigation.accession_code}-{self.accession_code}"
+        folder_name = f"s_{self.investigation.work_package}-{self.investigation.accession_code}-{self.accession_code}"
         if self.slug:
-            folder_name += f"__{self.slug}"
+            folder_name += f"_{self.slug}"
         return folder_name
         
     class Meta:
