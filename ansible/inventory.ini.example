@@ -1,0 +1,6 @@
+[django_servers]
+your-server-hostname ansible_user=your-ssh-username
+
+[django_servers:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_ssh_common_args='-o ForwardAgent=yes'

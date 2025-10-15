@@ -1,0 +1,510 @@
+---
+# Django deployment playbook
+- name: Deploy Django application
+  hosts: django_servers
+  become: yes
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Update apt cache and install required packages
+      apt:
+        name:
+          - nginx
+          - python3-pip
+          - python3-venv
+          - git
+          - sqlite3
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Setup GitHub access for deployment user
+      block:
+        - name: Create .ssh directory
+          file:
+            path: "/var/www/.ssh"
+            state: directory
+            owner: "{{ app_user }}"
+            group: "{{ app_group }}"
+            mode: '0700'
+        
+        - name: Add GitHub to known_hosts
+          known_hosts:
+            name: github.com
+            key: "{{ lookup('pipe', 'ssh-keyscan -t rsa github.com') }}"
+            path: "/var/www/.ssh/known_hosts"
+            state: present
+          become_user: "{{ app_user }}"
+
+    - name: Setup directory structure
+      block:
+        - name: Create project directory
+          file:
+            path: "{{ project_path }}"
+            state: directory
+            owner: "{{ app_user }}"
+            group: "{{ app_group }}"
+            mode: '0755'
+            
+        - name: Create data directories
+          file:
+            path: "{{ item }}"
+            state: directory
+            owner: "{{ app_user }}"
+            group: "{{ app_group }}"
+            mode: '0755'
+          loop:
+            - "{{ data_root }}"
+            - "{{ static_path }}"
+            - "{{ media_path }}"
+            - "{{ db_path }}"
+            - "/data/backups"
+            
+        - name: Create logs directory
+          file:
+            path: "/var/log/{{ app_name }}"
+            state: directory
+            owner: "{{ app_user }}"
+            group: "{{ app_group }}"
+            mode: '0755'
+            
+        - name: Ensure Gunicorn runtime directory exists
+          file:
+            path: /run/gunicorn
+            state: directory
+            owner: "{{ app_user }}"
+            group: "{{ app_group }}"
+            mode: '0775'
+
+    - name: Create pre-deployment backup
+      block:
+        - name: Check if application directory exists
+          stat:
+            path: "{{ project_path }}"
+          register: app_dir_exists
+          
+        - name: Create pre-deployment backup
+          shell: |
+            BACKUP_DIR="/data/backups"
+            DATE=$(date +%Y-%m-%d_%H-%M-%S)
+            BACKUP_NAME="pre-deploy-{{ app_name }}_$DATE"
+            
+            # Create backup of specific folders
+            tar -czf "$BACKUP_DIR/$BACKUP_NAME.tar.gz" \
+              -C /data \
+              ansible \
+              resilience-api \
+              --exclude="*.pyc" \
+              --exclude="__pycache__" \
+              --exclude=".git" \
+              --exclude="node_modules" \
+              --exclude="venv" \
+              --exclude=".env.local"
+            
+            # Set permissions
+            chown {{ app_user }}:{{ app_group }} "$BACKUP_DIR/$BACKUP_NAME.tar.gz"
+            chmod 640 "$BACKUP_DIR/$BACKUP_NAME.tar.gz"
+            
+            echo "Pre-deployment backup created: $BACKUP_NAME"
+          when: app_dir_exists.stat.exists
+          args:
+            executable: /bin/bash
+
+    - name: Deploy application code
+      block:
+        - name: Clone or update Git repository
+          git:
+            repo: "{{ github_repo }}"
+            dest: "{{ project_path }}"
+            version: "{{ github_branch }}"
+            update: yes
+            force: yes
+          become_user: "{{ app_user }}"
+            
+        - name: Set permissions for project directory
+          file:
+            path: "{{ project_path }}"
+            state: directory
+            owner: "{{ app_user }}"
+            group: "{{ app_group }}"
+            recurse: yes
+
+    - name: Setup Python environment
+      block:
+        - name: Create virtual environment
+          command:
+            cmd: python3 -m venv "{{ venv_path }}"
+            creates: "{{ venv_path }}/bin/activate"
+          become_user: "{{ app_user }}"
+            
+        - name: Install Python dependencies
+          pip:
+            requirements: "{{ project_path }}/requirements.txt"
+            virtualenv: "{{ venv_path }}"
+            virtualenv_command: python3 -m venv
+          become_user: "{{ app_user }}"
+            
+        - name: Install Gunicorn and Uvicorn
+          pip:
+            name: "{{ item }}"
+            virtualenv: "{{ venv_path }}"
+          become_user: "{{ app_user }}"
+          loop:
+            - gunicorn
+            - uvicorn
+
+    - name: Configure application environment
+      block:
+        - name: Create .env file
+          copy:
+            dest: "{{ project_path }}/.env"
+            content: |
+              DJANGO_PRODUCTION=True
+              DJANGO_SECRET_KEY={{ django_secret_key }}
+              DJANGO_ALLOWED_HOSTS={{ domain_name }}
+              API_BASE_URL=https://{{ domain_name }}
+              DJANGO_STATIC_ROOT={{ static_path }}
+              DJANGO_MEDIA_ROOT={{ media_path }}
+              DJANGO_DB_PATH={{ db_path }}/db.sqlite3
+            owner: "{{ app_user }}"
+            group: "{{ app_group }}"
+            mode: '0600'
+            
+        - name: Create gunicorn service file
+          copy:
+            dest: "/etc/systemd/system/gunicorn-{{ app_name }}.service"
+            content: |
+              [Unit]
+              Description=Gunicorn ASGI daemon for {{ app_name }}
+              After=network.target
+              
+              [Service]
+              User={{ app_user }}
+              Group={{ app_group }}
+              WorkingDirectory={{ project_path }}
+              EnvironmentFile={{ project_path }}/.env
+              Environment=PYTHONUNBUFFERED=1
+              
+              ExecStartPre=/bin/mkdir -p /run/gunicorn
+              ExecStartPre=/bin/chown {{ app_user }}:{{ app_group }} /run/gunicorn
+              ExecStartPre=/bin/chmod 0775 /run/gunicorn
+              
+              ExecStart={{ venv_path }}/bin/gunicorn \
+                  --workers 3 \
+                  --worker-class=uvicorn.workers.UvicornWorker \
+                  --bind unix:/run/gunicorn/gunicorn.sock \
+                  --bind 127.0.0.1:8000 \
+                  --capture-output \
+                  --log-level=debug \
+                  --log-file=/var/log/{{ app_name }}/gunicorn.log \
+                  config.asgi:application
+              
+              RuntimeDirectory=gunicorn
+              RuntimeDirectoryMode=0775
+              Restart=on-failure
+              RestartSec=5s
+              
+              [Install]
+              WantedBy=multi-user.target
+            owner: root
+            group: root
+            mode: '0644'
+            
+        - name: Create Nginx site configuration
+          copy:
+            dest: "/etc/nginx/sites-available/{{ app_name }}"
+            content: |
+              server {
+                  listen 80;
+                  listen [::]:80;
+                  server_name {{ domain_name }};
+                  return 301 https://$server_name$request_uri;
+              }
+              
+              server {
+                  listen 443 ssl;
+                  listen [::]:443 ssl ipv6only=on;
+                  server_name {{ domain_name }};
+                  
+                  # SSL Configuration
+                  ssl_certificate /etc/letsencrypt/live/{{ domain_name }}/fullchain.pem;
+                  ssl_certificate_key /etc/letsencrypt/live/{{ domain_name }}/privkey.pem;
+                  include /etc/letsencrypt/options-ssl-nginx.conf;
+                  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+                  
+                  # Main application proxy
+                  location / {
+                      proxy_pass http://unix:/run/gunicorn/gunicorn.sock;
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Real-IP $remote_addr;
+                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                      proxy_set_header X-Forwarded-Proto $scheme;
+                      proxy_buffering off;
+                      proxy_request_buffering off;
+                      client_max_body_size 0;
+                      proxy_http_version 1.1;
+                      chunked_transfer_encoding off;
+                  }
+                  
+                  # Static files
+                  location /static/ {
+                      alias {{ static_path }}/;
+                      expires 1d;
+                      add_header Cache-Control "public";
+                  }
+                  
+                  # Media files
+                  location /media/ {
+                      alias {{ media_path }}/;
+                  }
+              }
+            owner: root
+            group: root
+            mode: '0644'
+            
+        - name: Configure Nginx
+          block:
+            - name: Enable site
+              file:
+                src: /etc/nginx/sites-available/{{ app_name }}
+                dest: /etc/nginx/sites-enabled/{{ app_name }}
+                state: link
+              notify: Restart Nginx
+              
+            - name: Remove default site
+              file:
+                path: /etc/nginx/sites-enabled/default
+                state: absent
+              ignore_errors: yes
+              notify: Restart Nginx
+
+    - name: Setup utilities and maintenance scripts
+      block:
+        - name: Create deployment script with backup
+          copy:
+            dest: "{{ project_path }}/deploy.sh"
+            content: |
+              #!/bin/bash
+              # Deployment script with automatic backup
+              set -e
+              
+              echo "=== Deployment started at $(date) ==="
+              
+              # Create pre-deployment backup
+              BACKUP_DIR="/data/backups"
+              DATE=$(date +%Y-%m-%d_%H-%M-%S)
+              BACKUP_NAME="deploy-backup-{{ app_name }}_$DATE"
+              
+              echo "Creating deployment backup..."
+              tar -czf "$BACKUP_DIR/$BACKUP_NAME.tar.gz" \
+                -C /data \
+                ansible \
+                resilience-api \
+                --exclude="*.pyc" \
+                --exclude="__pycache__" \
+                --exclude=".git" \
+                --exclude="node_modules" \
+                --exclude="venv" \
+                --exclude=".env.local"
+              
+              chown {{ app_user }}:{{ app_group }} "$BACKUP_DIR/$BACKUP_NAME.tar.gz"
+              chmod 640 "$BACKUP_DIR/$BACKUP_NAME.tar.gz"
+              echo "Backup created: $BACKUP_NAME"
+              
+              # Proceed with deployment
+              cd {{ project_path }}
+              git pull
+              {{ venv_path }}/bin/pip install -r requirements.txt
+              {{ venv_path }}/bin/python manage.py collectstatic --noinput
+              {{ venv_path }}/bin/python manage.py migrate
+              sudo systemctl restart gunicorn-{{ app_name }}
+              echo "=== Deployment completed at $(date) ==="
+            owner: "{{ app_user }}"
+            group: "{{ app_group }}"
+            mode: '0755'
+            
+        - name: Create comprehensive backup script
+          copy:
+            dest: /usr/local/bin/backup-app.sh
+            content: |
+              #!/bin/bash
+              # Comprehensive backup script for {{ app_name }}
+              BACKUP_DIR="/data/backups"
+              DB_PATH="{{ db_path }}/db.sqlite3"
+              APP_PATH="{{ project_path }}"
+              DATE=$(date +%Y-%m-%d_%H-%M-%S)
+              
+              echo "Starting backup at $(date)"
+              
+              # Create backup of specific folders
+              echo "Backing up /data/ansible and /data/resilience-api..."
+              tar -czf "$BACKUP_DIR/app-{{ app_name }}_$DATE.tar.gz" \
+                -C /data \
+                ansible \
+                resilience-api \
+                --exclude="*.pyc" \
+                --exclude="__pycache__" \
+                --exclude=".git" \
+                --exclude="node_modules" \
+                --exclude="venv" \
+                --exclude=".env.local"
+              
+              if [ -f "$DB_PATH" ]; then
+                echo "Backing up database..."
+                sqlite3 "$DB_PATH" ".backup '$BACKUP_DIR/db-{{ app_name }}_$DATE.sqlite3'"
+                gzip "$BACKUP_DIR/db-{{ app_name }}_$DATE.sqlite3"
+                chown {{ app_user }}:{{ app_group }} "$BACKUP_DIR/db-{{ app_name }}_$DATE.sqlite3.gz"
+                chmod 640 "$BACKUP_DIR/db-{{ app_name }}_$DATE.sqlite3.gz"
+              fi
+              
+              # Set permissions
+              chown {{ app_user }}:{{ app_group }} "$BACKUP_DIR/app-{{ app_name }}_$DATE.tar.gz"
+              chmod 640 "$BACKUP_DIR/app-{{ app_name }}_$DATE.tar.gz"
+              
+              # Remove backups older than 14 days
+              echo "Cleaning old backups..."
+              find "$BACKUP_DIR" -name "app-{{ app_name }}*.tar.gz" -type f -mtime +14 -delete
+              find "$BACKUP_DIR" -name "db-{{ app_name }}*.sqlite3.gz" -type f -mtime +14 -delete
+              find "$BACKUP_DIR" -name "deploy-backup-{{ app_name }}*" -type f -mtime +7 -delete
+              find "$BACKUP_DIR" -name "pre-deploy-{{ app_name }}*" -type f -mtime +7 -delete
+              
+              echo "Backup completed at $(date)"
+            owner: root
+            group: root
+            mode: '0755'
+            
+        - name: Create database-only backup script (for frequent backups)
+          copy:
+            dest: /usr/local/bin/backup-db.sh
+            content: |
+              #!/bin/bash
+              # Quick database backup script
+              BACKUP_DIR="/data/backups"
+              DB_PATH="{{ db_path }}/db.sqlite3"
+              DATE=$(date +%Y-%m-%d_%H-%M-%S)
+              BACKUP_FILE="$BACKUP_DIR/db-{{ app_name }}_$DATE.sqlite3"
+              
+              if [ -f "$DB_PATH" ]; then
+                sqlite3 "$DB_PATH" ".backup '$BACKUP_FILE'"
+                gzip -f "$BACKUP_FILE"
+                chmod 640 "$BACKUP_FILE.gz"
+                chown {{ app_user }}:{{ app_group }} "$BACKUP_FILE.gz"
+                
+                # Remove database backups older than 7 days (keep more frequent)
+                find "$BACKUP_DIR" -name "db-{{ app_name }}*.sqlite3.gz" -type f -mtime +7 -delete
+              fi
+            owner: root
+            group: root
+            mode: '0755'
+            
+        - name: Set up nightly comprehensive backups
+          cron:
+            name: "Comprehensive backup"
+            hour: "2"
+            minute: "0"
+            job: "/usr/local/bin/backup-app.sh"
+            
+        - name: Set up frequent database backups
+          cron:
+            name: "Database backup"
+            hour: "*/6"
+            minute: "0"
+            job: "/usr/local/bin/backup-db.sh"
+
+    - name: Setup Django application
+      block:
+        - name: Collect static files
+          command:
+            cmd: "{{ venv_path }}/bin/python manage.py collectstatic --noinput"
+            chdir: "{{ project_path }}"
+          become_user: "{{ app_user }}"
+          environment:
+            DJANGO_PRODUCTION: 'True'
+            DJANGO_STATIC_ROOT: '{{ static_path }}'
+            DJANGO_MEDIA_ROOT: '{{ media_path }}'
+            DJANGO_DB_PATH: '{{ db_path }}/db.sqlite3'
+            
+        - name: Run migrations
+          command:
+            cmd: "{{ venv_path }}/bin/python manage.py migrate"
+            chdir: "{{ project_path }}"
+          become_user: "{{ app_user }}"
+          environment:
+            DJANGO_PRODUCTION: 'True'
+            DJANGO_SECRET_KEY: '{{ django_secret_key }}'
+            DJANGO_ALLOWED_HOSTS: '{{ domain_name }}'
+            API_BASE_URL: 'https://{{ domain_name }}'
+            DJANGO_STATIC_ROOT: '{{ static_path }}'
+            DJANGO_MEDIA_ROOT: '{{ media_path }}'
+            DJANGO_DB_PATH: '{{ db_path }}/db.sqlite3'
+            
+        - name: Check if superuser exists
+          shell: |
+            cd {{ project_path }}
+            {{ venv_path }}/bin/python << EOF
+            import os
+            import sys
+            sys.path.append('{{ project_path }}')
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+            from django.core.wsgi import get_wsgi_application
+            get_wsgi_application()
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            if not User.objects.filter(is_superuser=True).exists():
+                print('NO_SUPERUSER')
+            else:
+                print('SUPERUSER_EXISTS')
+            EOF
+          register: superuser_check
+          changed_when: false
+          args:
+            executable: /bin/bash
+          become_user: "{{ app_user }}"
+          environment:
+            PYTHONPATH: "{{ project_path }}"
+            DJANGO_SETTINGS_MODULE: config.settings
+            DJANGO_PRODUCTION: 'True'
+            DJANGO_STATIC_ROOT: '{{ static_path }}'
+            DJANGO_MEDIA_ROOT: '{{ media_path }}'
+            DJANGO_DB_PATH: '{{ db_path }}/db.sqlite3'
+            
+        - name: Create Django superuser
+          shell: |
+            cd {{ project_path }}
+            {{ venv_path }}/bin/python << EOF
+            import os
+            import sys
+            sys.path.append('{{ project_path }}')
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+            from django.core.wsgi import get_wsgi_application
+            get_wsgi_application()
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            User.objects.create_superuser('{{ django_admin_username }}', '{{ django_admin_email }}', '{{ django_admin_password }}')
+            EOF
+          when: superuser_check.stdout == 'NO_SUPERUSER'
+          no_log: true
+          args:
+            executable: /bin/bash
+          become_user: "{{ app_user }}"
+          environment:
+            PYTHONPATH: "{{ project_path }}"
+            DJANGO_SETTINGS_MODULE: config.settings
+            DJANGO_PRODUCTION: 'True'
+            DJANGO_DB_PATH: '{{ db_path }}/db.sqlite3'
+            DJANGO_SECRET_KEY: '{{ django_secret_key }}'
+            DJANGO_ALLOWED_HOSTS: '{{ domain_name }}'
+            DJANGO_STATIC_ROOT: '{{ static_path }}'
+            DJANGO_MEDIA_ROOT: '{{ media_path }}'
+            
+        - name: Restart Gunicorn service
+          systemd:
+            name: gunicorn-{{ app_name }}
+            state: restarted
+            daemon_reload: yes
+
+  handlers:
+    - name: Restart Nginx
+      systemd:
+        name: nginx
+        state: restarted

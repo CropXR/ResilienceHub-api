@@ -1,0 +1,27 @@
+---
+# Django application settings
+app_name: resiliencehub-api
+
+
+# Project paths
+project_path: /data/ansible/deploy/resiliencehub-api
+venv_path: /data/ansible/deploy/venv
+
+# Data paths
+data_root: /data/resiliencehub-api
+static_path: "{{ data_root }}/static/{{ app_name }}"
+media_path: "{{ data_root }}/media/{{ app_name }}"
+db_path: "{{ data_root }}/db/{{ app_name }}"
+
+domain_name: your-domain.com
+github_repo: https://github.com/YourOrg/YourRepo.git
+github_branch: main
+app_user: www-data
+app_group: www-data
+
+# SECURITY: Generate these with:
+# python -c 'import secrets; print(secrets.token_urlsafe(50))'
+django_secret_key: "REPLACE_WITH_SECURE_SECRET_KEY"
+django_admin_username: admin
+django_admin_email: admin@example.com
+django_admin_password: "REPLACE_WITH_SECURE_PASSWORD"
