@@ -20,12 +20,7 @@ from django.contrib.auth.models import User
 # Unregister the original User admin
 admin.site.unregister(User)
 
-# Unregister the default Token admin and register our custom one
-try:
-    admin.site.unregister(Token)
-except admin.sites.NotRegistered:
-    pass  # Token not registered yet, that's fine
-
+# Register our custom Token admin (unregistration happens in apps.py ready())
 @admin.register(Token)
 class CustomTokenAdmin(BaseTokenAdmin):
     list_display = ('key', 'user', 'user_email', 'created')
