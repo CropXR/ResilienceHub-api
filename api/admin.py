@@ -4,10 +4,12 @@ from django.urls import reverse
 from django import forms
 from guardian.admin import GuardedModelAdmin
 from guardian.shortcuts import get_users_with_perms, get_objects_for_user
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.admin import TokenAdmin as BaseTokenAdmin
 
 from .models import (
-    Investigation, Study, 
-    UserRole, Institution, 
+    Investigation, Study,
+    UserRole, Institution,
     InvestigationInstitution,
     CustomUser
 )
@@ -18,11 +20,34 @@ from django.contrib.auth.models import User
 # Unregister the original User admin
 admin.site.unregister(User)
 
+# Unregister the default Token admin and register our custom one
+admin.site.unregister(Token)
+
+@admin.register(Token)
+class CustomTokenAdmin(BaseTokenAdmin):
+    list_display = ('key', 'user', 'user_email', 'created')
+    search_fields = ('user__username', 'user__email', 'key')
+    list_filter = ('created',)
+    ordering = ('-created',)
+    raw_id_fields = ('user',)
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'Email'
+
 # Register the CustomUser model with a custom UserAdmin
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_active')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_active', 'has_api_token')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
+
+    def has_api_token(self, obj):
+        has_token = hasattr(obj, 'auth_token')
+        if has_token:
+            return format_html('<span style="color: green;">✓</span>')
+        return format_html('<span style="color: red;">✗</span>')
+    has_api_token.short_description = 'API Token'
+    has_api_token.admin_order_field = 'auth_token'
 
 class CustomGuardedModelAdmin(GuardedModelAdmin):
     def get_queryset(self, request):
